@@ -18,7 +18,7 @@ dnspython = "^2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
-ruff = "^0.8.0"
+ruff = "^0.9.4"
 mypy = "^1.9.0"
 
 [tool.ruff]

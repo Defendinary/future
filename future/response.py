@@ -5,7 +5,9 @@ class Response:
     def __init__(self, body: bytes = b"", status: int = 200, headers=None):
         self.body = body
         self.status = status
-        self.headers = headers or [[b"content-type", b"text/plain"]]
+        #self.headers = headers or [[b"content-type", b"text/plain"]]
+        self.headers = [[key.encode(), value.encode()] for key, value in headers.items()] if headers else [[b"content-type", b"text/plain"]]
+
 
     async def __call__(self, send: Callable) -> None:
         start_message = {
@@ -26,4 +28,8 @@ class PlainTextResponse(Response):
 
 
 class JSONResponse(Response):
+    pass
+
+
+class EmptyResponse(Response):
     pass

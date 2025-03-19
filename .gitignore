@@ -160,5 +160,5 @@ cython_debug/
 .idea/
 .vscode/
 
-# Temp dev folder
-tmp/
+*.DS_Store
+

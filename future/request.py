@@ -1,5 +1,5 @@
 from future.types import ASGIScope, ASGIReceive
-from future.utils import decode_header
+#from future.utils import decode_header
 
 
 class Request:
@@ -8,7 +8,8 @@ class Request:
         self.receive = receive
         self.method = scope["method"]
         self.path = scope["path"]
-        self.headers = dict(decode_header(scope["headers"]))
+        self.headers = dict([(key.decode("utf-8"), value.decode("utf-8")) for key, value in scope["headers"]])  # FIXME: why decode?
+        #self.headers = dict(decode_header(scope["headers"]))
         self.host = self.headers.get("host", "")
         # self.host = dict(scope['headers']).get(b'host', b'').decode()
 

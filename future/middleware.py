@@ -144,3 +144,38 @@ class HTAccessConfuser(Middleware):
 
 class HeaderConfuser(Middleware):
     pass
+
+
+class GZipMiddleware(Middleware):
+    #from starlette.applications import Starlette
+    #from starlette.middleware import Middleware
+    #from starlette.middleware.gzip import GZipMiddleware
+    
+    #routes = ...
+    
+    #middleware = [
+    #    Middleware(GZipMiddleware, minimum_size=1000)
+    #]
+
+    #app = Starlette(routes=routes, middleware=middleware)
+    pass
+
+class CORSMiddleware(Middleware):
+    #from starlette.applications import Starlette
+    #from starlette.middleware import Middleware
+    #from starlette.middleware.cors import CORSMiddleware
+
+    #middleware = [
+    #    Middleware(CORSMiddleware, allow_origins=['*'])
+    #]
+    
+    #app = Starlette(routes=routes, middleware=middleware)
+
+    CORS = {
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": ("origin, content-type, accept, authorization, x-xsrf-token, x-request-id"),
+    }
+    pass
+

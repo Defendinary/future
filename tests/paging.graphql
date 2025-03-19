@@ -1,0 +1,34 @@
+"""
+An object containing either cursor or offset pagination request values.
+If PagingInput is omitted, paging will default to type "CURSOR", and "first" 100,000.
+"""
+input PagingInput {
+  "When performing OFFSET paging, the page number requested."
+  page: Int
+  "When performing OFFSET paging, the number or records requested."
+  limit: Int
+  "When performing CURSOR paging, the number of records requested AFTER the CURSOR."
+  first: Int
+  "When performing CURSOR paging, the number of records requested BEFORE the CURSOR."
+  last: Int
+}
+
+"""
+Pagination metadata returned with each paginated request.
+"""
+type Paging {
+  "The total number of pages available based on the requested limit/first/last value."
+  pages: Int
+  "The total number of records available matching the given request."
+  total: Int
+  "When performing OFFSET paging, the page number returned."
+  page: Int
+  "When performing OFFSET paging, the number of requested records per page."
+  limit: Int
+  "When performing CURSOR paging, a Boolean indicating the presence or absence of additional pages __after__ the __endCursor__."
+  hasNextPage: Boolean
+  "When performing CURSOR paging, a Boolean indicating the presence or absence of additional pages __before__ the __startCursor__."
+  hasPreviousPage: Boolean
+  "The number of items returned in this response. May be less than the number requested."
+  returned: Int
+}

@@ -1,0 +1,33 @@
+{
+    "python.defaultInterpreterPath": "./.venv",
+    "python.languageServer": "Pylance",
+    "python.analysis.languageServerMode": "full",
+    "python.analysis.typeCheckingMode": "strict",
+    
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/__pycache__": true,
+
+        ".venv": true,
+        ".vscode": false,
+        ".gitignore": true,
+        ".flake8": true,
+        ".coverage": true,
+        ".pytest_cache": true,
+        "poetry.lock": true,
+        "poetry.toml": true,
+        "pyproject.toml": true,
+        "tests": false,
+        "boilerplate": false,
+        "LICENSE": true
+    },
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+
+}

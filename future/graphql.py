@@ -5,8 +5,12 @@ import logging.handlers
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 from ariadne import graphql_sync, EnumType, load_schema_from_path, make_executable_schema, ObjectType, ScalarType, SchemaDirectiveVisitor
+from ariadne import load_schema_from_str
 from ariadne.explorer import ExplorerGraphiQL
 from graphql import default_field_resolver, GraphQLError
+from ariadne.asgi import GraphQL
+from ariadne_graphql_modules import ObjectType, gql, make_executable_schema
+
 
 # wsgi application instance to deploy app behind apache/gunicorn/nginx
 
@@ -101,13 +105,137 @@ class AuthDirective(SchemaDirectiveVisitor):
         return field
 
 
-
+"""
 base_types = load_schema_from_path('./base.graphql')
 root_query = load_schema_from_path('./root.query.graphql')
 root_mutation = load_schema_from_path('./root.mutation.graphql')
 paging_types = load_schema_from_path('./paging.graphql')
 directive_type = load_schema_from_path('./directives.graphql')
 user_types = load_schema_from_path('./user.graphql')
+"""
+
+# https://ariadnegraphql.org/docs/modularization
+
+base_types = '''
+    """
+    The "BaseNode" interface defines an interface implemented by return types:
+    """
+    interface BaseNode {
+    "A unique identifier for this record. Do not request 'id' if 'distinct' is 'true'"
+    id: ID!
+    }
+
+    """
+    Provides a common interface for return data.
+    """
+    interface BaseResult {
+    "Pagination metadata. (see Paging)"
+    paging: Paging
+    
+    "A string error message returned by the API and may be displayed to the user by the client. This is separate from 'errors' which provides useful feedback during client development."
+    error: String
+
+    "A list of returned objects that implement the BaseNode interface."
+    items: [BaseNode!]
+    }
+'''
+
+directive_type = '''
+    """
+    The `isAuthenticated` directive denotes fields that can only be used when the user is authenticated.
+    """
+    directive @isAuthenticated on FIELD_DEFINITION
+'''
+
+paging_types = '''
+    """
+    An object containing either cursor or offset pagination request values.
+    If PagingInput is omitted, paging will default to type "CURSOR", and "first" 100,000.
+    """
+    input PagingInput {
+    "When performing OFFSET paging, the page number requested."
+    page: Int
+    "When performing OFFSET paging, the number or records requested."
+    limit: Int
+    "When performing CURSOR paging, the number of records requested AFTER the CURSOR."
+    first: Int
+    "When performing CURSOR paging, the number of records requested BEFORE the CURSOR."
+    last: Int
+    }
+
+    """
+    Pagination metadata returned with each paginated request.
+    """
+    type Paging {
+    "The total number of pages available based on the requested limit/first/last value."
+    pages: Int
+    "The total number of records available matching the given request."
+    total: Int
+    "When performing OFFSET paging, the page number returned."
+    page: Int
+    "When performing OFFSET paging, the number of requested records per page."
+    limit: Int
+    "When performing CURSOR paging, a Boolean indicating the presence or absence of additional pages __after__ the __endCursor__."
+    hasNextPage: Boolean
+    "When performing CURSOR paging, a Boolean indicating the presence or absence of additional pages __before__ the __startCursor__."
+    hasPreviousPage: Boolean
+    "The number of items returned in this response. May be less than the number requested."
+    returned: Int
+    }
+'''
+
+root_mutation = '''
+    type Mutation {
+        # Define a mutation register, which uses the Inputs defined in user.graphql, and uses the ResponsePayload as return
+        register (
+            input: RegistrationInput!
+        ): ResponsePayload!
+    }
+
+    # Custom resturn for response
+    type ResponsePayload {
+        status: Boolean!
+        id: ID
+    }
+'''
+
+root_query = '''
+    type Query {
+    # Define the query that is used in graphql language, what inputs it can take,
+    # what BaseResult it should use.
+    # Directives can be added at the end of either a field or the BaseResult
+    # restricting the return of either field or the whole object. 
+    users(
+        paging: PagingInput
+        distinct: Boolean
+    ): User!
+    }
+'''
+
+user_types = '''
+    # Inputs are used by mutation
+    input RegistrationInput {
+    username: String!
+    email: String!
+    password: String!
+    }
+
+
+    # Define the object that should be returned in BaseResult, If a field is followed by !, its required, if it is missing, Graphql will complain, and throw errors.
+    type UserNode implements BaseNode {
+    id: ID!
+    username: String
+    email: String @isAuthenticated
+    }
+
+
+    # Define the BaseResult and define that items must consist of a list of UserNodes
+    type User implements BaseResult {
+    paging: Paging
+    error: String
+    items: [UserNode!]
+    }
+'''
 
 
 # Create definition list

@@ -6,6 +6,7 @@ class Exception(BaseException):  # ASGIException????
     pass
 
 
+
 # custom exception handler - FIXME: Does ASGI have anything standard for this?
 class RouteExceptionHandler: # ErrorHandler
     # Taken straight from https://sanic.dev/en/guide/best-practices/exceptions.html#custom-error-handling
@@ -22,6 +23,32 @@ class RouteExceptionHandler: # ErrorHandler
         return Response(body=error.encode(), status=status_code)
 
 
+
+
+
+
+
+
+"""
+from sanic import Sanic, Request, HTTPResponse, json
+from sanic.handlers import ErrorHandler
+
+
+
+class CustomErrorHandler(ErrorHandler):
+    def default(self, request: Request, exception: Exception) -> HTTPResponse:
+        ''' handles errors that have no error handlers assigned '''
+        # You custom error handling logic...
+
+        status_code = getattr(exception, "status_code", 500)
+
+        err = {
+            "error": str(exception), 
+            "foo": "bar"
+        }
+        
+        return json(err, status=status_code)
+"""
 
 
 

@@ -6,10 +6,12 @@ class Response:
         self.body = body
         self.status = status
         #self.headers = headers or [[b"content-type", b"text/plain"]]
-        self.headers = [[key.encode(), value.encode()] for key, value in headers.items()] if headers else [[b"content-type", b"text/plain"]]
+        self.headers = [[key.encode(), value.encode()] for key, value in headers.items()] if headers else [[b"content-type", b"text/plain"]]  # FIXME: Should this be the default..?
 
 
     async def __call__(self, send: Callable) -> None:
+        assert type(self.body) == bytes, "Response body must be bytes"
+        
         start_message = {
             "type": "http.response.start",
             "status": self.status,

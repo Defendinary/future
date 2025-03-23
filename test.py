@@ -8,8 +8,8 @@ from future.routing import RouteGroup, Get
 app = Future(lifespan=Lifespan, name="Future", debug=True, domain="example.com")
 
 routes = [
-    Get(path='/ping', endpoint=WelcomeController.ping, name="Ping", middlewares=[TestMiddlewareRequest]),  # type: ignore[reportAttributeAccessIssue]
-    
+    Get(path='/', endpoint=WelcomeController.ping, name="Ping"), #, middlewares=[TestMiddlewareRequest]),  # type: ignore[reportAttributeAccessIssue]
+
     RouteGroup(
         name="API",
         subdomain="api",

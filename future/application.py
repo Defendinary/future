@@ -107,6 +107,9 @@ class AsgiEventType(enum.StrEnum):
 
 
 
+
+
+
 #@dataclass
 class Lifespan:
     #app: ASGIApp
@@ -164,6 +167,14 @@ async def lifespan(app):
 
 
 
+
+
+
+
+
+
+
+
 class Future:
     def __init__(self, lifespan, name: str = "Future", debug: bool = False, domain: str = ""):
         # spawn background tasks in the lifespan startup process... or database connections etc...
@@ -193,6 +204,9 @@ class Future:
                 "responses": {"200": {"description": description}},
             }
     """
+
+
+
 
     #def _add_route(self, path: str, endpoint: Callable, subdomain: str = None, methods: list[str] = ["GET"], name: str = "", middlewares: list[Middleware] = [], regex=None) -> None:
     def _add_route(self, route: Route, subdomain: str = "") -> None:
@@ -265,9 +279,13 @@ class Future:
     def add_routes(self, routes: Sequence[Union[Route, RouteGroup]]) -> None:
         for r in routes:
             if isinstance(r, Route):  # Single route
+                
+                # Compile pattern for the route
+                r.compile_pattern()
+
                 self._add_route(
                     route=r,
-                    subdomain="",
+                    subdomain="",  # FIXME: NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNB, BY SWITCHING THIS TO "", EVERYTHING BREAKS
                 )
             elif isinstance(r, RouteGroup):  # Grouped routes
                 for route in r.routes:
@@ -339,8 +357,8 @@ class Future:
 
         # Check if host is an IP address
         if host_header.replace(".", "").isdigit():  # Simple check for IPv4  # TODO: do we need this? Is it even worth checking?
-            domain = None
-            subdomain = None
+            domain = "" # Was: None
+            subdomain = ""    # WHY IS THIS NONE STILL???? SHOULDNT THIS BE "" instead of NONE?
         else:
             # TODO - nock: Direct match self.domain med subdomain på host-feltet
             # With debug=True, just parse subdomains as usual since we set the Host header to test:
@@ -374,10 +392,26 @@ class Future:
         route_params = None
         matched_route = None
         request_path = request.path.encode()
+
+
+        # FIXME: NBNBNB: remember to include SINGLE routes here (non subdomain routes)!!!
+        # Get routes for the subdomain in question
         subdomain_routes = self.routes.get(subdomain, [])  # EndpointConfig list
+        
+        print("--------------")
+        print(subdomain)
+        print(subdomain_routes)
+        print("--------------")
+
+        # FIXME: Fuck lol, we forgot to handle single routes here :[ and it fucks up after the change from subdomain = None to subdomain = ""
 
         for epc in subdomain_routes:
             route: Route = epc["route"]
+
+            # FIXME: Here is an error: AttributeError: 'Get' object has no attribute '_rx'
+            print(route.__dict__)
+            print(route._rx)
+            
             route_match: RouteMatch = route.match(request_path)
             if route_match:
                 matched_route = epc

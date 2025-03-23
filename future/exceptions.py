@@ -51,10 +51,7 @@ class CustomErrorHandler(ErrorHandler):
 """
 
 
-
-""" 
-
-errors.py
+# errors.py
 
 
 
@@ -79,7 +76,7 @@ def configure_error_handlers(app: Application) -> None:
         return text(str(exception) or "Not found", 404)
 
     async def not_implemented(*args: Any) -> Response:
-        return text("Not implemented", status=500)
+        return text("Not implemented", status=500)  # TODO: Raise these exceptions when MIDDLEWARE fails !!
 
     async def unauthorized(*args: Any) -> Response:
         return text("Unauthorized", status=401)
@@ -100,4 +97,3 @@ def configure_error_handlers(app: Application) -> None:
     
     app.exceptions_handlers.update(exception_handlers)
 
-"""

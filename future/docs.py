@@ -1,3 +1,18 @@
+
+# API Spec generated based on settings
+API_SPEC = {
+    "openapi": "1.0.0.",
+    "info": {
+        "title": APP_NAME,
+        "version": APP_VERSION,
+        "description": APP_DESCRIPTION,
+    }
+}
+
+
+
+
+
 """
 This module contains OpenAPI Documentation definition for the API.
 

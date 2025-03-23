@@ -10,111 +10,8 @@ from ariadne.explorer import ExplorerGraphiQL
 from graphql import default_field_resolver, GraphQLError
 from ariadne.asgi import GraphQL
 from ariadne_graphql_modules import ObjectType, gql, make_executable_schema
+import strawberry
 
-
-# wsgi application instance to deploy app behind apache/gunicorn/nginx
-
-"""
-# GraphQL
-
-
-Visit http://127.0.0.1:5000/graphql
-
-To list all the users use this query
-```graphql
-query users {
-    users {
-        items {
-            username
-            id
-            email
-        }
-    }
-}
-```
-
-To test a mutation use this
-```graphql
-mutation reg {
-    register (input: {
-        username: "hello",
-        password: "world",
-        email: "hello@world.com"
-    })
-    {
-        id
-    }
-}
-```
-"""
-
-
-#app_path = os.path.dirname(os.path.abspath(__file__))
-#sys.path.insert(0, app_path)
-#schema_dirname, _filename = os.path.split(os.path.abspath(__file__))
-
-
-# This is a function used by mutation. For demo purposes does not contain logic, only prints the inputs given from graphql
-
-def UserRegistrationResolver(_, info, input=None):
-    # Do somethign with the data inside the controller
-    __import__('pprint').pprint(input)
-    return { 'status': True, 'id': 1 }
-
-
-def UserViewResolver(_, info, paging=None):
-    list_of_users = [
-        {'id': 1, 'username': 'user1', 'email': 'user1@example.com'},
-        {'id': 2, 'username': 'user2', 'email': 'user2@example.com'},
-        {'id': 3, 'username': 'user3', 'email': 'user3@example.com'},
-        {'id': 4, 'username': 'user4', 'email': 'user4@example.com'},
-        {'id': 5, 'username': 'user5', 'email': 'user5@example.com'}
-    ]
-    result = {
-        'items': list_of_users
-    }
-    return result
-
-
-
-
-def UserContext(request):
-    context = {
-        'request': request,
-        'user': "Smet",
-        'role': None
-    }
-    # Do some logic for user context, and return the context object If the user 
-    # is None, the directive throws error or missing token Change the value of
-    # User to something if you want to see email field
-    return context
-
-
-class AuthDirective(SchemaDirectiveVisitor):
-    def visit_field_definition(self, field, object_type):
-        original_resolver = field.resolve or default_field_resolver
-
-        def resolve_is_authenticated(obj, info, **kwargs):
-            auth = info.context.get('user')
-            if not auth:
-                raise GraphQLError("No Token or invalid token")
-            result = original_resolver(obj, info, **kwargs)
-            return result
-
-        field.resolve = resolve_is_authenticated
-        return field
-
-
-"""
-base_types = load_schema_from_path('./base.graphql')
-root_query = load_schema_from_path('./root.query.graphql')
-root_mutation = load_schema_from_path('./root.mutation.graphql')
-paging_types = load_schema_from_path('./paging.graphql')
-directive_type = load_schema_from_path('./directives.graphql')
-user_types = load_schema_from_path('./user.graphql')
-"""
-
-# https://ariadnegraphql.org/docs/modularization
 
 base_types = '''
     """
@@ -238,6 +135,129 @@ user_types = '''
 '''
 
 
+
+
+# Define types manually
+User = strawberry.type(type("User", (), {"name": str, "age": int}))
+
+# Define the resolver
+def resolve_user() -> User:
+    return User(name="Patrick", age=100)
+
+# Create Query type manually
+Query = strawberry.type(type("Query", (), {
+    "user": strawberry.field(resolver=resolve_user)
+}))
+
+# Define schema
+schema = strawberry.Schema(query=Query)
+
+
+
+
+
+"""
+# GraphQL
+
+
+Visit http://127.0.0.1:5000/graphql
+
+To list all the users use this query
+```graphql
+query users {
+    users {
+        items {
+            username
+            id
+            email
+        }
+    }
+}
+```
+
+To test a mutation use this
+```graphql
+mutation reg {
+    register (input: {
+        username: "hello",
+        password: "world",
+        email: "hello@world.com"
+    })
+    {
+        id
+    }
+}
+```
+"""
+
+
+#app_path = os.path.dirname(os.path.abspath(__file__))
+#sys.path.insert(0, app_path)
+#schema_dirname, _filename = os.path.split(os.path.abspath(__file__))
+
+
+# This is a function used by mutation. For demo purposes does not contain logic, only prints the inputs given from graphql
+
+def UserRegistrationResolver(_, info, input=None):
+    # Do somethign with the data inside the controller
+    __import__('pprint').pprint(input)
+    return { 'status': True, 'id': 1 }
+
+
+def UserViewResolver(_, info, paging=None):
+    list_of_users = [
+        {'id': 1, 'username': 'user1', 'email': 'user1@example.com'},
+        {'id': 2, 'username': 'user2', 'email': 'user2@example.com'},
+        {'id': 3, 'username': 'user3', 'email': 'user3@example.com'},
+        {'id': 4, 'username': 'user4', 'email': 'user4@example.com'},
+        {'id': 5, 'username': 'user5', 'email': 'user5@example.com'}
+    ]
+    result = {
+        'items': list_of_users
+    }
+    return result
+
+
+
+
+def UserContext(request):
+    context = {
+        'request': request,
+        'user': "Smet",
+        'role': None
+    }
+    # Do some logic for user context, and return the context object If the user 
+    # is None, the directive throws error or missing token Change the value of
+    # User to something if you want to see email field
+    return context
+
+
+class AuthDirective(SchemaDirectiveVisitor):
+    def visit_field_definition(self, field, object_type):
+        original_resolver = field.resolve or default_field_resolver
+
+        def resolve_is_authenticated(obj, info, **kwargs):
+            auth = info.context.get('user')
+            if not auth:
+                raise GraphQLError("No Token or invalid token")
+            result = original_resolver(obj, info, **kwargs)
+            return result
+
+        field.resolve = resolve_is_authenticated
+        return field
+
+
+"""
+base_types = load_schema_from_path('./base.graphql')
+root_query = load_schema_from_path('./root.query.graphql')
+root_mutation = load_schema_from_path('./root.mutation.graphql')
+paging_types = load_schema_from_path('./paging.graphql')
+directive_type = load_schema_from_path('./directives.graphql')
+user_types = load_schema_from_path('./user.graphql')
+"""
+
+# https://ariadnegraphql.org/docs/modularization
+
 # Create definition list
 type_defs = [
     base_types,
@@ -327,7 +347,7 @@ def graphql_server():
     return jsonify(result), status_code
 
 
-# Serve an graphql Explorer via regular get requests. This makes it easy to write queries and mutation during development
+# Serve a GraphQL Explorer via regular GET requests. This makes it easy to write queries and mutation during development
 @app.route('/graphql', methods=['GET'])
 def graphql_playgroud():
     explorer_html = ExplorerGraphiQL().html(None)

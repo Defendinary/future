@@ -6,10 +6,12 @@ class FutureTestClient:
     def __init__(self, app: Future):
         self.app = app
         self.transport = httpx.ASGITransport(app=self.app)
-        self.client = httpx.AsyncClient(transport=self.transport)  # base_url="http://example.com") # TODO: We dont need base_url any longer since we have decided to use Host header instead.
+        self.client = httpx.AsyncClient(transport=self.transport)
 
-    async def get(self, path: str):
-        response = await self.client.get(path)
+    async def get(self, path: str, headers: dict | None = None):
+        response = await self.client.get(path, headers=headers)
+        print(response)
+        print("#IHASDKASD")
         return response
 
     async def __aenter__(self):

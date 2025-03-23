@@ -6,6 +6,10 @@ import random
 # CSP: Content Security Policy
 
 
+# README - a note on the use of middlewares:
+# if a middleware does not RETURN or hit any EXCEPTIONS, it means it passes (all checks ok)
+# if it however RETURNS or hits an EXCEPTION, the middleware check will deny further processing of the request.
+
 class Middleware:
     name = None
     apply = True

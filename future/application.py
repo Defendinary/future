@@ -274,7 +274,7 @@ class Future:
                     route.path = f"{r.prefix}{route.path}"  # Convert route.path to full path (group.prefix AND route.path)
                     route.middlewares = r.middlewares + route.middlewares  # Combine route-specific middlewares with group middlewares
                     
-                    # Now lets compile the regex for the new path before we add it
+                    # Now lets compile the regex for the new route path before we add it
                     route.compile_pattern()
                     
                     # Finally, we add the route group

@@ -1,6 +1,8 @@
 from unittest.mock import patch, MagicMock
+from confluent_kafka import Producer, Consumer
 import unittest
-from confluent_kafka import Producer
+
+
 
 class TestKafkaProducer(unittest.TestCase):
     @patch("confluent_kafka.Producer")
@@ -13,13 +15,6 @@ class TestKafkaProducer(unittest.TestCase):
 
         mock_instance.produce.assert_called_with("test-topic", key="key", value="message")
 
-
-
-
-
-from unittest.mock import patch, MagicMock
-import unittest
-from confluent_kafka import Consumer
 
 class TestKafkaConsumer(unittest.TestCase):
     @patch("confluent_kafka.Consumer")
@@ -34,7 +29,3 @@ class TestKafkaConsumer(unittest.TestCase):
 
         self.assertEqual(message.value(), b"message")
         mock_instance.poll.assert_called_with(1.0)
-
-
-
-

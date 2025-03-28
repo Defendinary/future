@@ -1,10 +1,7 @@
-import pytest
-import asyncio
 from future.application import Future, Lifespan
 from future.routing import RouteGroup, Get
 from future.controllers import WelcomeController
 from future.testclient import FutureTestClient
-
 
 
 async def test_route_single_without_domain():

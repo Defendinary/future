@@ -2,17 +2,20 @@ from future.application import Future, Lifespan
 from future.controllers import WelcomeController, DebugController
 from future.middleware import ResponseCodeConfuser, TestMiddlewareRequest, TestMiddlewareResponse
 from future.routing import RouteGroup, Get
+from future.graphql import graphql_handler
 
 
 routes = [
     Get(path='/', endpoint=WelcomeController.root, name="Welcome"), #, middlewares=[TestMiddlewareRequest]),  # type: ignore[reportAttributeAccessIssue]
     Get(path='/test', endpoint=DebugController.test, name="test"),  # type: ignore[reportAttributeAccessIssue]
-
+    Get(path="/graphql", endpoint=graphql_handler, name="graphql"),   # type: ignore[reportAttributeAccessIssue]
     RouteGroup(
         name="API",
         subdomain="api",
         prefix="/api",
         middlewares=[
+            #TestMiddlewareRequest,
+            #TestMiddlewareResponse,
             #ResponseCodeConfuser,
         ],
         routes=[

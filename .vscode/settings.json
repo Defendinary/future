@@ -12,13 +12,15 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
         "**/__pycache__": true,
-
+        
         ".venv": true,
         ".vscode": false,
         ".gitignore": true,
         ".flake8": true,
         ".coverage": true,
         ".pytest_cache": true,
+        ".mypy_cache": true,
+        ".ruff_cache": true,
         "poetry.lock": true,
         "poetry.toml": true,
         "pyproject.toml": false,
@@ -26,8 +28,10 @@
         "boilerplate": false,
         "LICENSE": true
     },
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
+
+    // We use mypy instead of pytest
+    //"python.testing.pytestArgs": [
+    //    "tests"
+    //],
 
 }

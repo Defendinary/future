@@ -23,3 +23,20 @@ class UserPass(Authentication):
 class SSO(Authentication):
     # SSO / SAML authentication
     auth_type = "sso"
+
+
+class Kerberos(Authentication):
+    # Kerberos authentication
+    auth_type = "kerberos"
+
+
+class AzureAD(Authentication):
+    # Azure AD authentication
+    auth_type = "azuread"
+
+
+class OAuth(Authentication):
+    # OAuth authentication
+    auth_type = "oauth"
+
+

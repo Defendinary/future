@@ -1,5 +1,6 @@
 from future.types import ASGIScope, ASGIReceive
 #from future.utils import decode_header
+import json
 
 
 class Request:
@@ -22,3 +23,9 @@ class Request:
             body += message.get("body", b"")
             more_body = message.get("more_body", False)
         return body
+
+    """
+    async def json(self) -> dict:
+        body = await self.body()
+        return json.loads(body)
+    """

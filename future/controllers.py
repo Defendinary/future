@@ -1,6 +1,8 @@
 from future.request import Request
 from future.response import Response, JSONResponse
+#from future.graphql import GraphQL
 import json
+from textwrap import dedent
 
 
 """
@@ -48,7 +50,7 @@ Linters like Pylance assume all methods are instance methods unless decorated �
 
 Python allows any name or no parameter at all; def method(): ... inside a class is legal and callable from the class.
 
-Adding self when it’s unused is misleading and violates clarity — it implies instance state is accessed when it’s not.
+Adding self when it's unused is misleading and violates clarity — it implies instance state is accessed when it's not.
 
 Metaclasses or conventions can be used to treat methods as static implicitly — decorators are not required for static behavior.
 
@@ -60,6 +62,32 @@ class Controller:
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} may not be instantiated. This is a hack to prevent mistakes and helps us keep controller methods static.")
 
+"""
+class GraphQLController(Controller):
+    graphql = GraphQL()
+
+    async def query(request: Request) -> Response:
+        query = dedent('''
+            query GetEverything {
+                users {
+                    id
+                    name
+                    email
+                }
+                posts {
+                    id
+                    title
+                    content
+                    author {
+                    name
+                    }
+                }
+            }
+        ''')    
+        #query = {"query": query}
+        result = await GraphQLController.graphql.execute(query)
+        return Response(body=json.dumps(result).encode())
+"""
 
 class DebugController(Controller):
     async def test(request: Request):  # type: ignore[no-self]

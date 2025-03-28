@@ -6,6 +6,7 @@ from future.middleware import Middleware
 from future.types import ASGIScope, ASGIReceive, ASGISend
 from typing import TypedDict, Callable, Optional, Union, Any, Sequence
 from rich.console import Console
+from textwrap import dedent
 from rich import print
 from re import Pattern
 import logging
@@ -16,6 +17,14 @@ import httpx
 import enum
 from pwn import log
 import re
+import sys
+import platform
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+from rich.box import ROUNDED
+from importlib.metadata import version, PackageNotFoundError
 
 """
 +        except BaseException:
@@ -54,6 +63,25 @@ app = configure_application(*configure_services(load_settings()))
 """
 
 setup_logging()
+
+
+def get_version(pkg_name: str) -> str:
+    """Get the installed version of a package.
+    
+    Args:
+        pkg_name: Name of the package to check
+        
+    Returns:
+        str: Version string or "not installed" if package isn't found
+    """
+    try:
+        return version(pkg_name)
+    except PackageNotFoundError:
+        return "not installed"
+    except Exception:  # Catch any other unexpected errors
+        return "unknown"
+
+
 
 
 class RegexConfig(TypedDict):
@@ -184,11 +212,16 @@ class Future:
         self.domain = domain
         self.logger = logging.getLogger(name)
         self.routes: dict[str, list[EndpointConfig]] = {}
+        self.config = None
         #self.routes: dict[str, dict[str, EndpointConfig]] = {}
 
         # self.middleware_manager = MiddlewareManager(self.dispatch)
         # Add openAPI after all rotues are added with add_routes()
         # self._add_to_openapi(path, subdomain, methods, summary)
+
+    def add_config(self, config):
+        self.config = config
+
 
     """
     def _add_to_openapi(self, path: str, subdomain: str, methods: list[str], summary: str, description: str = "Successful Response"):
@@ -368,22 +401,29 @@ class Future:
             # FIXME: Yes, I know. This is shitty. We will fix this later to allow nested subdomains/RouteGroups, probably.
             # Original line (has issues with IP addresses and ports):
             # subdomain = ".".join(host_header_parts[:-2]) if len(host_header_parts) > 2 else ""
-            #domain = (host_header_parts[-2] + "." + host_header_parts[-1] if len(host_header_parts) > 1 else "")  # old
+            domain = (host_header_parts[-2] + "." + host_header_parts[-1] if len(host_header_parts) > 1 else "")  # old
             #domain = re.search(r'([^.]+\.[^.]+)$', host).group(1) if re.search(r'([^.]+\.[^.]+)$', host) else ""  # Solution 1: Get just the top level domain (example.com)
-            domain = re.search(r'(?:[^.]+\.)?(.+)$', host_header).group(1) if re.search(r'(?:[^.]+\.)?(.+)$', host_header) else ""  #  Solution 2: Get everything except first subdomain (api.example.com from dev.api.example.com)
+
+            # What the fuck is this lol
+            #domain = re.search(r'(?:[^.]+\.)?(.+)$', host_header).group(1) if re.search(r'(?:[^.]+\.)?(.+)$', host_header) else ""  #  Solution 2: Get everything except first subdomain (api.example.com from dev.api.example.com)
             #subdomain = ".".join(host_header_parts[:-2]) if len(host_header_parts) > 2 else ""
             subdomain = host_header_parts[0] if len(host_header_parts) > 2 else ""
 
 
-        # FIXME: should we care about the domain being set or not in debug mode? No... Probably not. Yes, we should. Debug mode = ALlowed, Prod = not allowed unless host header matches domain.
-        # Host header not matching domain AND not in debug mode, yeeet it
+        """
+        # FIXME: should we care about the domain being set or not in debug mode? It doesnt really make sense, since it will fuck up any route within Route Groups
+        print("APP_DOMAIN:", self.domain)
+        print("Host headaer domain:", domain)
+        print("Subdomain:", subdomain)
         if domain != self.domain and not self.debug:
             response = Response(body=b"Not Found", status=404)
             await response(send)
             return
-
         """
-        # Custom OpenAPI path  TODO: Move dis bitch somewhere else...
+        
+        
+        """
+        # FIXME: Custom OpenAPI path  TODO: Move dis bitch somewhere else...
         if path == "/openapi.json":
             await self.serve_openapi(send)
             return
@@ -398,19 +438,18 @@ class Future:
         # Get routes for the subdomain in question
         subdomain_routes = self.routes.get(subdomain, [])  # EndpointConfig list
         
-        print("--------------")
-        print(subdomain)
-        print(subdomain_routes)
-        print("--------------")
+        #print("--------------")
+        #print(subdomain)
+        #print(subdomain_routes)
+        #print("--------------")
 
-        # FIXME: Fuck lol, we forgot to handle single routes here :[ and it fucks up after the change from subdomain = None to subdomain = ""
-
+        # TODO: Add support for nested route groups. Currently limited to only 1 RouteGroup
         for epc in subdomain_routes:
             route: Route = epc["route"]
 
             # FIXME: Here is an error: AttributeError: 'Get' object has no attribute '_rx'
-            print(route.__dict__)
-            print(route._rx)
+            #print(route.__dict__)
+            #print(route._rx)
             
             route_match: RouteMatch = route.match(request_path)
             if route_match:
@@ -446,8 +485,10 @@ class Future:
         # 2. Endpoint functionality
         if route_params:
             response = await endpoint(request, **route_params)
+            #response = await endpoint(None, request, **route_params)
         else:
             response = await endpoint(request)
+            #response = await endpoint(None, request)
 
         # 3. Post-processing (middlewares after)
         for a_middleware in middleware_after:
@@ -484,10 +525,67 @@ class Future:
 
     # FIXME: should this also be async?
     def run(self, host: str = "127.0.0.1", port: int = 8000, workers: int = 4, tls_key: Optional[str] = None, tls_cert: Optional[str] = None, tls_password: Optional[str] = None) -> None:
-        # Slight rip from Blacksheep (sorry, it was too cool not to...)
+        
+        # Dynamically get system information
+        python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        platform_info = platform.platform()
+        arch = platform.machine()
+        platform_str = f"{platform_info}-{arch}"
+        future_version = get_version("future")
+
+        # ASCII-art "F" made with ✨ sparkles
+        left = Text()
+        left.append("     ✨✨✨✨✨      \n", style="bold yellow")
+        left.append("     ✨              \n", style="yellow")
+        left.append("     ✨✨✨✨        \n", style="bold yellow")
+        left.append("     ✨              \n", style="yellow")
+        left.append("     ✨              \n", style="yellow")
+        left.append("                     \n", style="yellow")
+        left.append(" ASGI based Web API    ", style="bold green")
+
+        # Right info column
+        right = Table.grid(padding=(0, 1))
+        right.add_column(justify="left", no_wrap=True)
+        right.add_column(justify="left")
+        right.add_row("[red]app:[/]", "Future")  # APP_NAME  # TODO: add APP_DOMAIN
+        right.add_row("[red]mode:[/]", f"{ "debug" if self.debug else "prod"} / { workers } worker(s)")  # FIXME
+        right.add_row("[red]domain:[/]", f"{ self.config["APP_DOMAIN"] if self.config else "N/A" }")  # FIXME
+        right.add_row("[red]server:[/]", "future, HTTP/1.1")
+        right.add_row("[red]python:[/]", f"{python_version}")
+        right.add_row("[red]platform:[/]", f"{platform_str}")
+        right.add_row("[red]packages[/]:", f"future=={future_version}")
+        #right.add_row("[red]docs:[/]", f"http://localhost:{port}/docs")
+
+        # Combined layout
+        layout = Table.grid(expand=False)
+        layout.add_column(ratio=1)
+        layout.add_column(ratio=2)
+        layout.add_row(left, right)
+
+        """
+        # Title Panel
+        title_panel = Panel.fit(
+            Text(f"Future v{future_version}", justify="center", style="bold white on black"),
+            box=ROUNDED,
+            padding=(0, 1),
+            subtitle="Serving app @ http://127.0.0.1:9000",
+            subtitle_align="center",
+        )
+        """
+
+        main_panel = Panel(layout, box=ROUNDED, padding=(1, 2), expand=False)
         console = Console()
-        console.rule("[bold yellow]Running for local development", align="left")
+        #console.print(title_panel)
+        console.print(main_panel)
+
+        """
+        if self.debug:
+            console.rule("[bold red]Running for local development", align="left")
+        else:
+            console.rule("[bold yellow]Running for production", align="left")
         console.print(f"[bold yellow]Visit http://localhost:{port}/docs")
+        """
+
         uvicorn.run(
             app="__main__:app", # "app.main.app"
             host=host,
@@ -505,21 +603,3 @@ class Future:
         #os.environ["APP_ENV"] = "dev"
         #port = int(os.environ.get("APP_PORT", 44777))
         # FIXME: move debug flag to app.run() instead of Future()
-
-        # https://github.com/sanic-org/sanic/blob/a575f5c8858248680653c5a5b9565be4dcc56f9a/sanic/application/logo.py#L12    
-        # https://github.com/sanic-org/sanic/blob/a575f5c8858248680653c5a5b9565be4dcc56f9a/guide/webapp/display/layouts/home.py#L29
-        """
-        ┌──────────────────────────────────────────────────────────────────────────────┐
-        │                                Sanic v23.12.2                                │
-        │                      Goin' Fast @ http://127.0.0.1:9000                      │
-        ├───────────────────────┬──────────────────────────────────────────────────────┤
-        │                       │      app: Future                                     │
-        │     ▄███ █████ ██     │     mode: debug, single worker                       │
-        │    ██                 │   server: sanic, HTTP/1.1                            │
-        │     ▀███████ ███▄     │   python: 3.13.2                                     │
-        │                 ██    │ platform: macOS-15.3.1-arm64-arm-64bit-Mach-O        │
-        │    ████ ████████▀     │ packages: sanic-routing==23.12.0, sanic-ext==23.12.0 │
-        │                       │                                                      │
-        │ Build Fast. Run Fast. │                                                      │
-        └───────────────────────┴──────────────────────────────────────────────────────┘
-        """

@@ -10,8 +10,6 @@ class FutureTestClient:
 
     async def get(self, path: str, headers: dict | None = None):
         response = await self.client.get(path, headers=headers)
-        print(response)
-        print("#IHASDKASD")
         return response
 
     async def __aenter__(self):

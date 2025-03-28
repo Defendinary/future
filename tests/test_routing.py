@@ -7,7 +7,7 @@ from future.testclient import FutureTestClient
 
 
 
-async def test_single_route():
+async def test_route_single_without_domain():
     routes = [
         Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
     ]
@@ -23,7 +23,42 @@ async def test_single_route():
         assert response.text == "Welcome to Future!\n"
     # And the lifespan's teardown is run when exiting the block.
     
-    
+
+async def test_route_single_with_domain():
+    routes = [
+        Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
+    ]
+
+    app = Future(lifespan=Lifespan, debug=False, domain="example.com")
+    app.add_routes(routes=routes)
+
+    async with FutureTestClient(app) as client:
+        response = await client.get("http://127.0.0.1/", headers={"Host": "example.com"})
+        assert response.status_code == 200
+        assert response.text == "Welcome to Future!\n"
+
+
+async def test_route_group() -> None:
+    routes = [
+        RouteGroup(
+            subdomain="api",
+            name="test",
+            routes=[
+                Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
+            ]
+        ),
+    ]
+
+    app = Future(lifespan=Lifespan, debug=False, domain="example.com")
+    app.add_routes(routes=routes)
+
+    async with FutureTestClient(app) as client:
+        response = await client.get("http://127.0.0.1/", headers={"Host": "api.example.com"})
+        assert response.status_code == 200
+        assert response.text == "Welcome to Future!\n"
+
+
+  
 async def test_single_route_with_domain():
     routes = [
         Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
@@ -58,22 +93,3 @@ async def test_domain_routing() -> None:
         assert response.text == "Welcome to Future!\n"
     
 
-
-async def test_subdomain_routing() -> None:
-    routes = [
-        RouteGroup(
-            subdomain="api",
-            name="test",
-            routes=[
-                Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
-        ),
-    ]
-
-    app = Future(lifespan=Lifespan, debug=False, domain="example.com")
-    app.add_routes(routes=routes)
-    
-    async with FutureTestClient(app) as client:
-        response = await client.get("http://127.0.0.1/", headers={"Host": "api.example.com"})
-        assert response.status_code == 200
-        assert response.text == "Welcome to Future!\n"

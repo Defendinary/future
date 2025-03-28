@@ -16,27 +16,23 @@ class Middleware:
     priority = 0
     attach_to = "request"
 
-    def intercept(request: Request) -> Response | None:
+    def intercept(request: Request) -> Response:  # type: ignore[reportAttributeAccessIssue]
         # return Response(b"Intercepted!")
-        return None
-
+        ...
 
 class TestMiddlewareRequest(Middleware):
     name = "testReq"
     attach_to = "request"
 
-    def intercept(request: Request) -> Response | None:
+    def intercept(request: Request) -> Response:  # type: ignore[reportAttributeAccessIssue]
         return Response(body=b"req")
-        # return None
-
 
 class TestMiddlewareResponse(Middleware):
     name = "testResp"
     attach_to = "response"
 
-    def intercept(request: Request, response: Response) -> Response | None:
+    def intercept(request: Request, response: Response) -> Response:  # type: ignore[reportAttributeAccessIssue]
         return Response(body=b"resp")
-        # return None
 
 
 # ----
@@ -46,7 +42,7 @@ class ResponseCodeConfuser(Middleware):
     name = "response code confuser"
     attach_to = "response"
 
-    def intercept(request: Request, response: Response):
+    def intercept(request: Request, response: Response) -> Response:  # type: ignore[reportAttributeAccessIssue]
         response_codes = [
             100,
             101,

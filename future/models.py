@@ -6,6 +6,10 @@ from dataclasses import dataclass, asdict
 # nock recommendation
 from pydantic import BaseModel, Field, conint
 
+#from enum import Enum
+# import msgspec
+
+
 from typing import Generic, TypeVar
 T = TypeVar("T")
 # class PaginatedSet(Generic[T])

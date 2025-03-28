@@ -21,7 +21,7 @@
         ".pytest_cache": true,
         "poetry.lock": true,
         "poetry.toml": true,
-        "pyproject.toml": true,
+        "pyproject.toml": false,
         "tests": false,
         "boilerplate": false,
         "LICENSE": true

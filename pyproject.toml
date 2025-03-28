@@ -41,8 +41,11 @@ asyncio_default_fixture_loop_scope = "function"
 extend-select = ["UP"]
 
 [tool.flake8]
-ignore = ["E0213"]  # Ignores missing self error
-# move .flake8 stuff to here
+exclude = ["__pycache__", "built", "build", "venv"]
+ignore = ["E203", "E266", "W503", "E0213"]  # E0213 = Ignores missing self error
+max-line-length = 120
+max-complexity = 14
+select = ["B", "C", "E", "F", "W", "T4", "B9"]
 
 [build-system]
 requires = ["poetry-core"]

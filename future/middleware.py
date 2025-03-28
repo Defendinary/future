@@ -1,5 +1,5 @@
 from future.request import Request
-from future.response import Response
+from future.response import Response, EmptyResponse
 import random
 
 # CSRF: https://github.com/simonw/asgi-csrf
@@ -17,25 +17,31 @@ class Middleware:
     attach_to = "request"
 
     def intercept(request: Request) -> Response:  # type: ignore[reportAttributeAccessIssue]
-        # return Response(b"Intercepted!")
         ...
 
+
 class TestMiddlewareRequest(Middleware):
-    name = "testReq"
+    name = "testRequestMiddleware"
     attach_to = "request"
 
     def intercept(request: Request) -> Response:  # type: ignore[reportAttributeAccessIssue]
-        return Response(body=b"req")
+        # Inject user info into the request context
+        # user_info = get_user_info(request.headers...)
+        #if user_info:
+        #request.context["user_info"] = user_info
+        return Response(body=b"Request intercepted!")
+
 
 class TestMiddlewareResponse(Middleware):
-    name = "testResp"
+    name = "testResponseMiddleware"
     attach_to = "response"
 
     def intercept(request: Request, response: Response) -> Response:  # type: ignore[reportAttributeAccessIssue]
-        return Response(body=b"resp")
-
-
-# ----
+        # Inject user info into the response context
+        # user_info = get_user_info(request.headers...)
+        #if user_info:
+        #response.context["user_info"] = user_info
+        return Response(body=b"Response intercepted!")
 
 
 class ResponseCodeConfuser(Middleware):
@@ -112,8 +118,8 @@ class ResponseCodeConfuser(Middleware):
         # fuck with people using cURL to test
         if "curl" in request.headers["user-agent"]:
             random_code = random.choice(response_codes)
-            # return EmptyResponse(status=random_code)
-            return Response(status=random_code)
+            return EmptyResponse(status=random_code)
+            #return Response(status=random_code)
 
 
 class RateLimitMiddleware(Middleware):

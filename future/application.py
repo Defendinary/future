@@ -477,7 +477,7 @@ class Future:
 
         # 1. Pre-processing (middleware before)
         for b_middleware in middleware_before:
-            response = b_middleware.intercept(request)
+            response = await b_middleware.intercept(request)
             if response is not None:
                 await response(send)
                 return
@@ -547,13 +547,13 @@ class Future:
         right = Table.grid(padding=(0, 1))
         right.add_column(justify="left", no_wrap=True)
         right.add_column(justify="left")
-        right.add_row("[red]app:[/]", "Future")  # APP_NAME  # TODO: add APP_DOMAIN
+        right.add_row("[red]app:[/]", f"{ self.config['APP_NAME'] }")  # APP_NAME  # TODO: add APP_DOMAIN
         right.add_row("[red]mode:[/]", f"{ "debug" if self.debug else "prod"} / { workers } worker(s)")  # FIXME
         right.add_row("[red]domain:[/]", f"{ self.config["APP_DOMAIN"] if self.config else "N/A" }")  # FIXME
         right.add_row("[red]server:[/]", "future, HTTP/1.1")
-        right.add_row("[red]python:[/]", f"{python_version}")
-        right.add_row("[red]platform:[/]", f"{platform_str}")
-        right.add_row("[red]packages[/]:", f"future=={future_version}")
+        right.add_row("[red]python:[/]", f"{ python_version }")
+        right.add_row("[red]platform:[/]", f"{ platform_str }")
+        right.add_row("[red]packages[/]:", f"future=={ future_version }")
         #right.add_row("[red]docs:[/]", f"http://localhost:{port}/docs")
 
         # Combined layout

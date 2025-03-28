@@ -12,6 +12,7 @@ class Request:
         #self.headers = dict(decode_header(scope["headers"]))
         self.host = self.headers.get("host", "")
         # self.host = dict(scope['headers']).get(b'host', b'').decode()
+        self.context = {}  # for custom data we inject into the request
 
     async def body(self) -> bytes:
         more_body = True

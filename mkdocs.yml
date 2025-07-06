@@ -1,0 +1,37 @@
+site_name: Future Framework
+site_description: Next Gen. ASGI Framework for minimal Web APIs
+site_author: nicolaipre
+repo_name: Defendinary/future
+repo_url: https://github.com/Defendinary/future
+edit_uri: edit/main/docs/
+
+theme:
+  name: mkdocs
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Defendinary/future
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/future-api/
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js 

@@ -1,12 +1,17 @@
 site_name: Future Framework
-site_description: Next Gen. ASGI Framework for minimal Web APIs
-site_author: nicolaipre
-repo_name: Defendinary/future
+site_description: A minimalist, decorator-free ASGI web framework for Python
+site_author: Future Framework Team
+
+repo_name: future
 repo_url: https://github.com/Defendinary/future
 edit_uri: edit/main/docs/
 
-theme:
-  name: mkdocs
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage Guide: usage.md
+  - Quick Reference: quick-reference.md
+  - Examples: examples.md
 
 plugins:
   - search
@@ -14,10 +19,6 @@ plugins:
 markdown_extensions:
   - admonition
   - codehilite
-  - attr_list
-  - md_in_html
-  - def_list
-  - footnotes
   - toc:
       permalink: true
 

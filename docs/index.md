@@ -1,44 +1,106 @@
-# Welcome to Future Framework
+# Future Framework Documentation
 
-**Next Gen. ASGI Framework for minimal Web APIs**
+Welcome to the Future framework documentation. Future is a minimalist, decorator-free ASGI web framework for Python that emphasizes clarity and explicit code patterns.
 
-Future is a modern, minimalist ASGI framework designed for building fast, scalable web APIs with zero decorators and maximum clarity.
+## What is Future?
 
-## 🚀 Quick Start
+Future is a modern Python web framework built on ASGI that:
 
-```bash
-# Install Future
-poetry add future-api
+- **Avoids decorators** - Uses explicit, clear code patterns
+- **Minimalist design** - Focuses on simplicity and readability
+- **Type-safe** - Full mypy support with comprehensive type hints
+- **Modern features** - WebSocket support, GraphQL, scheduled tasks, and more
+- **Developer-friendly** - Built-in testing, CLI tools, and comprehensive documentation
 
-# Create a new project
-future init my-project
+## Key Features
 
-# Show all routes
-future routes
+- **HTTP Routing** - Simple, parameterized routes with full HTTP method support
+- **Middleware System** - Flexible middleware for cross-cutting concerns
+- **WebSocket Support** - Real-time communication with WebSocket routes
+- **GraphQL Integration** - Built-in GraphQL support with Strawberry
+- **Scheduled Tasks** - Native cron-like scheduler for background tasks
+- **Lifespan Management** - Startup and shutdown task coordination
+- **Testing Tools** - Built-in test client for HTTP and WebSocket testing
+- **CLI Tools** - Project scaffolding and route listing utilities
+
+## Quick Start
+
+```python
+from future.application import Future
+from future.controllers import WelcomeController
+from future.routing import Get
+
+routes = [
+    Get(path="/", endpoint=WelcomeController.root, name="Welcome")
+]
+
+app = Future()
+app.add_routes(routes=routes)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
 ```
 
-## ✨ Key Features
+## Documentation Sections
 
-- **Zero Decorators**: Clean, explicit code without magic
-- **Static Methods**: Controller methods without `self` parameters
-- **Type Safety**: Comprehensive type annotations throughout
-- **WebSocket Support**: Native WebSocket routing
-- **GraphQL Integration**: Built-in Strawberry GraphQL support
-- **CLI Tool**: Complete project management with `future` command
-- **Middleware System**: Hierarchical request/response interception
-- **Cron Scheduler**: Built-in cron-like task scheduling
+### [Installation](installation.md)
+Complete installation guide including dependencies, development setup, and configuration.
 
-## 📖 Documentation
+### [Usage Guide](usage.md)
+Comprehensive guide covering all framework features:
+- Basic application setup and configuration
+- Routing with parameters and HTTP methods
+- Middleware creation and registration
+- Lifespan management for startup/shutdown tasks
+- WebSocket implementation and real-time communication
+- Scheduled tasks and background job management
+- JSON responses and error handling
+- GraphQL integration with Strawberry
+- Testing with the built-in test client
+- Project structure and best practices
 
-- [Installation](installation.md)
-- [Quick Start](quickstart.md)
-- [Controllers](controllers.md)
-- [Routing](routing.md)
-- [Middleware](middleware.md)
-- [WebSockets](websockets.md)
-- [GraphQL](graphql.md)
-- [CLI Tool](cli.md)
-- [Configuration](configuration.md)
+### [Quick Reference](quick-reference.md)
+Fast reference for common patterns and code examples:
+- Basic setup and configuration
+- Route definitions and patterns
+- Middleware implementation
+- Response types and status codes
+- WebSocket handlers
+- Lifespan and scheduler setup
+- Route groups and organization
+- GraphQL schema definition
+- Testing patterns
+- Error handling
+- CLI commands
+
+### [Examples](examples.md)
+Complete working examples demonstrating:
+- Basic API server with user management
+- Real-time chat application with WebSockets
+- GraphQL API with user and post management
+- Scheduled task manager with background jobs
+- Authentication system with JWT middleware
+
+## Framework Philosophy
+
+Future follows these core principles:
+
+1. **Explicit over Implicit** - Clear, readable code without magic
+2. **No Decorators** - Avoids decorator patterns in favor of explicit method calls
+3. **Type Safety** - Comprehensive type hints and mypy support
+4. **Minimalism** - Focus on essential features with clean APIs
+5. **Developer Experience** - Excellent tooling and documentation
+
+## Getting Help
+
+- **GitHub Issues** - Report bugs and request features
+- **Documentation** - Comprehensive guides and examples
+- **Examples** - Check the `example.py` file for working examples
+- **Tests** - Browse test files for usage patterns
+
+## Contributing
+
+We welcome contributions! Please see our contributing guidelines and ensure all code follows our style guide with proper type hints and no decorators.
 
 ## 🛠️ Development
 
@@ -69,8 +131,8 @@ poetry add future-api
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](contributing.md) for details.
+We welcome contributions! Please see our GitHub repository for contribution guidelines.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License. 

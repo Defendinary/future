@@ -26,11 +26,10 @@
 
         "poetry.lock": true,
         "poetry.toml": true,
-        "LICENSE": true
+        "LICENSE": true,
+        "mkdocs.yml": true
     },
-
-    // We use mypy instead of pytest
-    //"python.testing.pytestArgs": [
-    //    "tests"
-    //],
+    "python.testing.pytestArgs": [
+        "tests"
+    ]
 }

@@ -49,7 +49,8 @@ future --help
 
 After installation, you can:
 
-1. [Create a new project](quickstart.md)
-2. [Learn about controllers](controllers.md)
-3. [Understand routing](routing.md)
-4. [Explore middleware](middleware.md) 
+1. [Create a new project](usage.md#basic-application-setup)
+2. [Learn about routing](usage.md#routing)
+3. [Understand middleware](usage.md#middleware)
+4. [Explore WebSocket support](usage.md#websocket-support)
+5. [Check out examples](examples.md) 

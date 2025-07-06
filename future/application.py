@@ -1,97 +1,33 @@
-from future.logger import setup_logging
-from future.request import Request
-from future.response import Response
-from future.routing import Route, RouteGroup, RouteMatch
-from future.middleware import Middleware
-from future.types import ASGIScope, ASGIReceive, ASGISend
-from typing import TypedDict, Callable, Optional, Union, Any, Sequence
-from rich.console import Console
-from textwrap import dedent
-from rich import print
-from re import Pattern
-import logging
-import uvicorn
-import traceback
-import asyncio
-import httpx
-import enum
-from pwn import log
-import re
-import sys
 import platform
+import sys
+import traceback
+
+from collections.abc import Sequence
+from importlib.metadata import PackageNotFoundError, version
+from typing import Any, Optional, Union
+
+import uvicorn
+
+from rich.box import ROUNDED
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.box import ROUNDED
-from importlib.metadata import version, PackageNotFoundError
+
+from future.logger import log
+from future.middleware import Middleware
+from future.requests import Request
+from future.responses import Response
+from future.routing import Route, RouteGroup
+from future.types import AsgiEventType, ASGIReceive, ASGIScope, ASGISend, RouteConfig
+
 
 """
-+        except BaseException:
-+            event_type = "lifespan.shutdown.failed" if started else "lifespan.startup.failed"
-+            await send({"type": event_type, "message": traceback.format_exc()})
-+            raise
-+        await send({"type": "lifespan.shutdown.complete"})
-         
--        # Custom openapi path
--        if path == "/openapi.json":
--            await self.serve_openapi(send)
--            return
-+        while True:
-+            message = await receive()
-+            print(f"Got message:", message)
-"""
-
-"""
-# This module configures the BlackSheep application before it starts.
-from blacksheep import Application
-from rodi import Container
-from app.auth import configure_authentication
-from app.docs import configure_docs
-from app.errors import configure_error_handlers
-from app.services import configure_services
-from app.settings import load_settings, Settings
-
-def configure_application(services: Container, settings: Settings) -> Application:
-    app = Application(services=services, show_error_details=settings.app.show_error_details)
-    configure_error_handlers(app)
-    configure_authentication(app, settings)
-    configure_docs(app, settings)
-    return app
-
-app = configure_application(*configure_services(load_settings()))
-"""
-
-setup_logging()
-
-
-def get_version(pkg_name: str) -> str:
-    """Get the installed version of a package.
-    
-    Args:
-        pkg_name: Name of the package to check
-        
-    Returns:
-        str: Version string or "not installed" if package isn't found
-    """
-    try:
-        return version(pkg_name)
-    except PackageNotFoundError:
-        return "not installed"
-    except Exception:  # Catch any other unexpected errors
-        return "unknown"
-
-
-
-
-
-
-""" # ASGI SPEC
+# ASGI SPEC
 async def application(scope, receive, send):
     event = await receive()
     ...
     await send({"type": "websocket.send", ...: ...})
-
 
 example_http_event = {
     "type": "http.request",
@@ -111,257 +47,282 @@ example_http_scope = {
     'headers': [...],
     ...: ...,
 }
+
+
+...
+
+
+except BaseException:
+    event_type = "lifespan.shutdown.failed" if started else "lifespan.startup.failed"
+    await send({"type": event_type, "message": traceback.format_exc()})
+    raise
+await send({"type": "lifespan.shutdown.complete"})
+
+# Custom openapi path
+if path == "/openapi.json":
+    await self.serve_openapi(send)
+    return
+while True:
+    message = await receive()
+    print(f"Got message:", message)
 """
-
-
-
-
-
-#@dataclass
-class Lifespan:
-    #app: ASGIApp
-    def __init__(self, app):
-        self.app = app
-
-    async def __aenter__(self):
-        async with asyncio.timeout(10):
-            log.info(message="\t  Running startup rotuine...")
-            await startup_wait(self.app)
-        return { "machine_id": 42 }
-
-    async def __aexit__(self, exc_type, exc_value, tb) -> bool | None:
-        async with asyncio.timeout(10):
-            log.info(message="\t  Running shutdown routine...")
-            await shutdown_wait(self.app)
-        return None
-
-
-async def startup_wait(app):
-    ...
-    #await asyncio.sleep(5)
-
-async def shutdown_wait(app):
-    ...
-    #await asyncio.sleep(5)
-
-
-"""
-async def lifespan(app):
-    log.info("Starting up...")
-    app.db = await init_db()
-    app.s3_client = await init_boto_s3()
-    app.redis_client = await init_redis()
-    app.settings.dynamic = await read_dynamic_settings(app.db)
-    app.sanity_check_settings()
-    app.spawn_metrics_worker()
-    yield
-    log.info("Shutting down...")
-    await app.save_metrics(app.db)
-    await email_devops()  # :)
-
-    async with asyncio.timeout(30):
-        print("startup things")
-        await startup_wait(app)
-        #await could_hang_forever()
-    try:
-        #yield # { "a": "b" } # yields stuff into scope
-        yield { "machine_id": 42 }  # state copied to every request
-    finally:
-        async with asyncio.timeout(30):
-            await shutdown_wait(app)
-            print("shutdown things")
-"""
-
-
-
-
-
-
-class RegexConfig(TypedDict):
-    paths: list[Pattern]
-
-class EndpointConfig(TypedDict):
-    endpoint: Callable
-    middleware_before: list[Middleware]
-    middleware_after: list[Middleware]
-    regex: Optional[RegexConfig]
-
-class AsgiEventType(enum.StrEnum):
-    LIFESPAN_STARTUP = "lifespan.startup"
-    LIFESPAN_STARTUP_COMPLETE = "lifespan.startup.complete"
-    LIFESPAN_STARTUP_FAILED = "lifespan.startup.failed"
-
-    LIFESPAN_SHUTDOWN = "lifespan.shutdown"
-    LIFESPAN_SHUTDOWN_COMPLETE = "lifespan.shutdown.complete"
-    LIFESPAN_SHUTDOWN_FAILED = "lifespan.shutdown.failed"
-
-    ...
-
-
-
-
-
 
 
 class Future:
-    def __init__(self, lifespan, name: str = "Future", debug: bool = False, domain: str = ""):
+    def __init__(self, lifespan: Any, config: dict[str, Any] | None = None) -> None:
         # spawn background tasks in the lifespan startup process... or database connections etc...
         # on shutdown, save shit, send info about shutdown etc...
         self.lifespan = lifespan
-        self.debug = debug  # Implement: https://asgi.readthedocs.io/en/stable/extensions.html#debug
-        self.domain = domain
-        self.logger = logging.getLogger(name)
-        self.routes: dict[str, list[EndpointConfig]] = {}
-        self.config = None
-        #self.routes: dict[str, dict[str, EndpointConfig]] = {}
+        self.routes: dict[str, dict[str, RouteConfig]] = {}
+        self.config = config or {}
 
-        # self.middleware_manager = MiddlewareManager(self.dispatch)
-        # Add openAPI after all rotues are added with add_routes()
-        # self._add_to_openapi(path, subdomain, methods, summary)
+        domain = self.config.get("APP_DOMAIN", "")
 
-    def add_config(self, config):
+        # Domainless mode: if no domain is set, subdomains are ignored, only prefixes work
+        # Domain defaults to empty string, so this will always be true
+        if domain == "":
+            warning_msg = (
+                "[WARNING] No domain specified!\n"
+                "Subdomains in RouteGroups will be IGNORED.\n"
+                "All routes will be accessible regardless of Host header.\n"
+                "Prefixes will still work as expected.\n"
+                "To enable subdomain routing, set the 'domain' parameter (e.g., domain='example.com')."
+            )
+            log.warning(warning_msg)
+            self.domain = ""
+            self.domainless_mode = True
+        else:
+            # Validate domain format (basic check)
+            if not domain.replace(".", "").replace("-", "").isalnum():
+                raise ValueError(f"Invalid domain format: {domain}. Domain must be alphanumeric with dots and hyphens only.")
+            self.domain = domain
+            self.domainless_mode = False
+
+        # Performance monitoring
+        self.route_count = 0
+        self.max_nesting_depth = 0
+        self.registered_domains: set[str] = set()
+
+    def set_config(self, config: dict[str, Any]) -> None:
         self.config = config
 
-
-    """
-    def _add_to_openapi(self, path: str, subdomain: str, methods: list[str], summary: str, description: str = "Successful Response"):
-        if subdomain:
-            full_path = f"/{subdomain}.{path.lstrip('/')}"
-        else:
-            full_path = path
-        if full_path not in self.openapi_schema["paths"]:
-            self.openapi_schema["paths"][full_path] = {}
-        for method in methods:
-            self.openapi_schema["paths"][full_path][method.lower()] = {
-                "summary": summary,
-                "responses": {"200": {"description": description}},
-            }
-    """
-
-
-
-
-    #def _add_route(self, path: str, endpoint: Callable, subdomain: str = None, methods: list[str] = ["GET"], name: str = "", middlewares: list[Middleware] = [], regex=None) -> None:
-    def _add_route(self, route: Route, subdomain: str = "") -> None:
+    def _add_route(self, route: Route, subdomain: str = "", parent_middlewares: Optional[list[Middleware]] = None) -> None:
         """Internal method to add single routes to the application.
 
         Args:
             route (Route): The actual route object
-            subdomain (str): The subdomain the route should (only) be available for. Defaults to "" (all).
+            subdomain (str): The full domain the route should be available for (e.g., "dev.api.example.com").
         """
+        # In domainless mode, always use the empty string key
+        key = "" if getattr(self, "domainless_mode", False) else subdomain
+        if key not in self.routes:
+            self.routes[key] = {}
+        self.route_count += 1
+        self.registered_domains.add(key)
 
-        # FIXME: This is no point in having??? Or is it just to prevent key error?? Rather just fix the key error?? or, maybe it is because of .append() later on?
-        if subdomain not in self.routes:
-            self.routes[subdomain] = []
+        # Build hierarchical middleware structure
+        middleware_levels = []
 
-        # TODO: do we want to be kind here and add a fail-safe that notifies the user and exits if the user attempts to overwrite an existing entry?
+        # Add parent middlewares first (if any)
+        if parent_middlewares:
+            parent_before = []
+            parent_after = []
+            for middleware in parent_middlewares:
+                if middleware.attach_to == "request":
+                    parent_before.append(middleware)
+                elif middleware.attach_to == "response":
+                    parent_after.append(middleware)
 
-        # old: if path not in self.routes[subdomain]:
-            #self.routes[subdomain][path] = {}
+            # Sort parent middlewares by priority
+            parent_before.sort(key=lambda m: m.priority)  # type: ignore[reportUnknownMemberType]
+            parent_after.sort(key=lambda m: m.priority)  # type: ignore[reportUnknownMemberType]
 
-        # Iterate over middlewares and put these in their respective before/after dicts
-        before = []
-        after = []
-        # old: for middleware in middlewares:
+            middleware_levels.append(
+                {
+                    "before": parent_before,
+                    "after": parent_after,
+                }
+            )
+
+        # Add route-specific middlewares
+        route_before = []
+        route_after = []
         for middleware in route.middlewares:
             if middleware.attach_to == "request":
-                before.append(middleware)
+                route_before.append(middleware)
             elif middleware.attach_to == "response":
-                after.append(middleware)
+                route_after.append(middleware)
 
-        # Sort based on middleware priority # TODO: Check that the order is correct
-        before.sort(key=lambda middleware: middleware.priority)
-        after.sort(key=lambda middleware: middleware.priority)
+        # Sort route middlewares by priority
+        route_before.sort(key=lambda m: m.priority)  # type: ignore[reportUnknownMemberType]
+        route_after.sort(key=lambda m: m.priority)  # type: ignore[reportUnknownMemberType]
 
-        endpoint_config = EndpointConfig(
-            #endpoint=route.endpoint,
-            middleware_before=before,
-            middleware_after=after,
-            #regex={"paths": [route._rx]},
-            #og_path=route.path,
-            #_rx={"paths": [regex]},
-            route=route  # Include the full Route object
+        middleware_levels.append({"before": route_before, "after": route_after})
+
+        # Create route config with hierarchical middleware structure
+        route_config = RouteConfig(
+            handler=route.endpoint,
+            middleware={"levels": middleware_levels},
+            regex={"paths": [route._rx]} if hasattr(route, "_rx") else None,  # type: ignore[reportGeneralTypeIssues]
         )
 
-        # Sort based on middleware priority # Is this done? Check the order lol
-        before.sort(key=lambda middleware: middleware.priority)
-        after.sort(key=lambda middleware: middleware.priority)
+        # Use route path as key for direct lookup
+        self.routes[key][route.path] = route_config
 
-        # old: self.routes[subdomain][path]["endpoint"] = endpoint
-        # old: self.routes[subdomain][path]["middleware_before"] = before
-        # old: self.routes[subdomain][path]["middleware_after"] = after
-        self.routes[subdomain].append(endpoint_config)
-
-        # TODO: Forbedre dicten over til nock sitt forslag:
-        """
-        {
-            "<endpoint>": {
-                "handler": "<route handler callable>",
-                "middleware": {
-                    "before_handlers": ["< sorted handlers callable>"]
-                    "after_handlers": ["< sorted handlers callable>"]
-                },
-                "regex?": {
-                    "paths": ["<compiled regex>", ...]
-                }
-            }
-        }
-        """
-
-    # old: def add_routes(self, routes: list[Route, RouteGroup]) -> None:
     def add_routes(self, routes: Sequence[Union[Route, RouteGroup]]) -> None:
         for r in routes:
-            if isinstance(r, Route):  # Single route
-                
-                # Compile pattern for the route
+            if isinstance(r, Route):
                 r.compile_pattern()
-
-                self._add_route(
-                    route=r,
-                    subdomain="",  # FIXME: NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNB, BY SWITCHING THIS TO "", EVERYTHING BREAKS
-                )
-            elif isinstance(r, RouteGroup):  # Grouped routes
-                for route in r.routes:
-                    route.path = f"{r.prefix}{route.path}"  # Convert route.path to full path (group.prefix AND route.path)
-                    route.middlewares = r.middlewares + route.middlewares  # Combine route-specific middlewares with group middlewares
-                    
-                    # Now lets compile the regex for the new route path before we add it
-                    route.compile_pattern()
-                    
-                    # Finally, we add the route group
-                    self._add_route(
-                        route=route,
-                        subdomain=r.subdomain,
-                    )
+                # Use the actual domain for individual routes, just like RouteGroups
+                subdomain = self.domain if not getattr(self, "domainless_mode", False) else ""
+                self._add_route(route=r, subdomain=subdomain)
+            elif isinstance(r, RouteGroup):  # type: ignore[reportUnnecessaryIsInstance]
+                self._add_route_group(r, parent_subdomain="", parent_middlewares=[], nesting_depth=0)
             else:
                 raise NotImplementedError
 
+    def _add_route_group(
+        self,
+        route_group: RouteGroup,
+        parent_subdomain: str = "",
+        parent_prefix: str = "",
+        parent_middlewares: Optional[list[Middleware]] = None,
+        nesting_depth: int = 0,
+    ) -> None:
+        """Recursively add RouteGroup and its nested RouteGroups."""
+        # Validate RouteGroup configuration
+        self._validate_route_group(route_group)
+
+        # Track nesting depth for performance monitoring
+        self.max_nesting_depth = max(self.max_nesting_depth, nesting_depth)
+
+        # Build the full subdomain path for this group
+        current_subdomain = route_group.subdomain
+        if parent_subdomain and current_subdomain:
+            full_subdomain = f"{current_subdomain}.{parent_subdomain}"
+        elif parent_subdomain:
+            full_subdomain = parent_subdomain
+        elif current_subdomain:
+            full_subdomain = current_subdomain
+        else:
+            full_subdomain = ""
+
+        # Build the full prefix path for this group with validation
+        full_prefix = self._build_prefix_path(parent_prefix, route_group.prefix)
+
+        # Process all routes in this group
+        for r in route_group.routes:
+            if isinstance(r, RouteGroup):
+                # Nested RouteGroup - recurse with updated parent subdomain and prefix
+                # Pass parent middlewares as a separate parameter to maintain hierarchy
+                self._add_route_group(
+                    r, parent_subdomain=full_subdomain, parent_prefix=full_prefix, parent_middlewares=route_group.middlewares, nesting_depth=nesting_depth + 1
+                )
+            else:
+                # Regular Route - add with full subdomain path and accumulated prefix
+                r.path = f"{full_prefix}{r.path}"  # Convert route.path to full path (accumulated prefix AND route.path)
+                r.compile_pattern()
+
+                # Build full domain path for dictionary lookup
+                if getattr(self, "domainless_mode", False):
+                    full_domain = ""
+                else:
+                    full_domain = f"{full_subdomain}.{self.domain}" if full_subdomain else self.domain
+
+                # Check for route conflicts before adding
+                self._check_route_conflicts(r, full_domain)
+
+                # Pass parent middlewares to maintain hierarchy
+                self._add_route(route=r, subdomain=full_domain, parent_middlewares=route_group.middlewares)
+
+    def _validate_route_group(self, route_group: RouteGroup) -> None:
+        """Validate RouteGroup configuration."""
+        # Validate subdomain format
+        if route_group.subdomain and not route_group.subdomain.replace(".", "").replace("-", "").isalnum():
+            raise ValueError(f"Invalid subdomain format: {route_group.subdomain}. Must be alphanumeric with dots and hyphens only.")
+
+        # Validate prefix format
+        if route_group.prefix:
+            if not route_group.prefix.startswith("/"):
+                raise ValueError(f"Invalid prefix format: {route_group.prefix}. Must start with '/'.")
+            if "//" in route_group.prefix:
+                raise ValueError(f"Invalid prefix format: {route_group.prefix}. Cannot contain consecutive slashes.")
+
+    def _build_prefix_path(self, parent_prefix: str, current_prefix: str) -> str:
+        """Build and validate accumulated prefix path."""
+        if parent_prefix and current_prefix:
+            full_prefix = f"{parent_prefix}{current_prefix}"
+        elif parent_prefix:
+            full_prefix = parent_prefix
+        elif current_prefix:
+            full_prefix = current_prefix
+        else:
+            full_prefix = ""
+
+        # Validate final prefix
+        if full_prefix and not full_prefix.startswith("/"):
+            raise ValueError(f"Invalid accumulated prefix: {full_prefix}. Must start with '/'.")
+
+        return full_prefix
+
+    def _check_route_conflicts(self, route: Route, domain: str) -> None:
+        """Check for route conflicts within the same domain."""
+        existing_routes = self.routes.get(domain, {})
+        if route.path in existing_routes:
+            raise ValueError(f"Route conflict detected: {route.path} already exists in domain {domain}")
+
+    def _validate_domain_access(self, host_domain: str) -> bool:
+        """Validate if the host domain is allowed to access routes."""
+        # Check if domain matches our configured domain or any subdomain
+        if not self.domain:
+            return True  # No domain restriction
+
+        # Allow exact domain match
+        if host_domain == self.domain:
+            return True
+
+        # Allow subdomains of our domain
+        if host_domain.endswith(f".{self.domain}"):
+            return True
+
+        return False
+
+    def get_performance_stats(self) -> dict[str, Any]:
+        """Get performance statistics for the application."""
+        return {
+            "total_routes": self.route_count,
+            "registered_domains": len(self.registered_domains),
+            "max_nesting_depth": self.max_nesting_depth,
+            "domain_list": list(self.registered_domains),
+            "memory_usage": {"routes_dict_size": len(self.routes), "total_route_configs": sum(len(configs) for configs in self.routes.values())},
+        }
 
     async def handle_lifespan_request(self, scope: ASGIScope, receive: ASGIReceive, send: ASGISend) -> None:
         # initialize_scheduler for cronjobs
-        
         assert scope["type"] == "lifespan"
         message = await receive()
-        assert message["type"] == "lifespan.startup"
-        started = False
+        assert message["type"] == AsgiEventType.LIFESPAN_STARTUP
         app = scope.get("app")
-        
+
+        started = False
         try:
-            async with self.lifespan(app) as state:
+            # async with self.lifespan(app) as state:
+            self.lifespan.app = app
+            async with self.lifespan as state:
                 if state is not None:
                     scope["state"].update(state)
-                await send({"type": "lifespan.startup.complete"})
+                await send({"type": AsgiEventType.LIFESPAN_STARTUP_COMPLETE})
                 started = True
                 message = await receive()
-                assert message["type"] == "lifespan.shutdown"
-                
+                assert message["type"] == AsgiEventType.LIFESPAN_SHUTDOWN
+
         except BaseException:
-            event_type = "lifespan.shutdown.failed" if started else "lifespan.startup.failed"
+            event_type = AsgiEventType.LIFESPAN_SHUTDOWN_FAILED if started else AsgiEventType.LIFESPAN_STARTUP_FAILED
             await send({"type": event_type, "message": traceback.format_exc()})
             raise
-        
-        await send({"type": "lifespan.shutdown.complete"})
-        
+
+        await send({"type": AsgiEventType.LIFESPAN_SHUTDOWN_COMPLETE})
+
         """
         while True:
             message = await receive()
@@ -375,145 +336,130 @@ class Future:
                 break
         """
 
-
     async def handle_http_request(self, scope: ASGIScope, receive: ASGIReceive, send: ASGISend) -> None:
         request = Request(scope, receive)
-
-        # Grab the host header
-        host_header_parts = request.host.split(".") if request.host else []
-
-        # Strip the port away, we don't care about it
-        if ":" in request.host:
-            host_header = request.host.split(":")[0]
-        else:
-            host_header = request.host
-
-        # Check if host is an IP address
-        if host_header.replace(".", "").isdigit():  # Simple check for IPv4  # TODO: do we need this? Is it even worth checking?
-            domain = "" # Was: None
-            subdomain = ""    # WHY IS THIS NONE STILL???? SHOULDNT THIS BE "" instead of NONE?
-        else:
-            # TODO - nock: Direct match self.domain med subdomain på host-feltet
-            # With debug=True, just parse subdomains as usual since we set the Host header to test:
-            # 🚀 Recommended: Use option 1 (Host header rewrite) so debug mode behaves like production:         # curl -H "Host: sub.example.com" http://127.0.0.1:8000/your-route
-            # Get all parts except the last two (which form the domain)
-            # subdomain = host_header_parts[0] if len(host_header_parts) > 2 else ""
-            # FIXME: Yes, I know. This is shitty. We will fix this later to allow nested subdomains/RouteGroups, probably.
-            # Original line (has issues with IP addresses and ports):
-            # subdomain = ".".join(host_header_parts[:-2]) if len(host_header_parts) > 2 else ""
-            domain = (host_header_parts[-2] + "." + host_header_parts[-1] if len(host_header_parts) > 1 else "")  # old
-            #domain = re.search(r'([^.]+\.[^.]+)$', host).group(1) if re.search(r'([^.]+\.[^.]+)$', host) else ""  # Solution 1: Get just the top level domain (example.com)
-
-            # What the fuck is this lol
-            #domain = re.search(r'(?:[^.]+\.)?(.+)$', host_header).group(1) if re.search(r'(?:[^.]+\.)?(.+)$', host_header) else ""  #  Solution 2: Get everything except first subdomain (api.example.com from dev.api.example.com)
-            #subdomain = ".".join(host_header_parts[:-2]) if len(host_header_parts) > 2 else ""
-            subdomain = host_header_parts[0] if len(host_header_parts) > 2 else ""
-
-
-        """
-        # FIXME: should we care about the domain being set or not in debug mode? It doesnt really make sense, since it will fuck up any route within Route Groups
-        print("APP_DOMAIN:", self.domain)
-        print("Host headaer domain:", domain)
-        print("Subdomain:", subdomain)
-        if domain != self.domain and not self.debug:
-            response = Response(body=b"Not Found", status=404)
-            await response(send)
-            return
-        """
-        
-        
-        """
-        # FIXME: Custom OpenAPI path  TODO: Move dis bitch somewhere else...
-        if path == "/openapi.json":
-            await self.serve_openapi(send)
-            return
-        """
-
-        route_params = None
-        matched_route = None
         request_path = request.path.encode()
-
-
-        # FIXME: NBNBNB: remember to include SINGLE routes here (non subdomain routes)!!!
-        # Get routes for the subdomain in question
-        subdomain_routes = self.routes.get(subdomain, [])  # EndpointConfig list
-        
-        #print("--------------")
-        #print(subdomain)
-        #print(subdomain_routes)
-        #print("--------------")
-
-        # TODO: Add support for nested route groups. Currently limited to only 1 RouteGroup
-        for epc in subdomain_routes:
-            route: Route = epc["route"]
-
-            # FIXME: Here is an error: AttributeError: 'Get' object has no attribute '_rx'
-            #print(route.__dict__)
-            #print(route._rx)
-            
-            route_match: RouteMatch = route.match(request_path)
-            if route_match:
-                matched_route = epc
-                route_params = route_match.params
-                break
-
-        if not matched_route:
-            response = Response(body=b"Not Found", status=404)
+        host_domain = request.host.split("/")[0] if "/" in request.host else request.host
+        if not self._validate_domain_access(host_domain):
+            response = Response(body="Forbidden", status=403)
             await response(send)
             return
-
-
-        log.debug(f"Congratulations. You hit a valid route and didn't fuck anything up (at least until now..)")  # type: ignore[reportUnknownMemberType]
-        # Process middlewares in reverse order?
-        # for middleware in reversed(self.middlewares): ...
-        # old: Ok, the endpoint exists and has a match. Check if it has any before or after middlewares
-        # old: middleware_before = subdomain_routes.get(path).get("middleware_before", None)
-        # old: middleware_after = subdomain_routes.get(path).get("middleware_after", None)
-        # FIXME: error handling for this, if endpoint is None
-        #endpoint = subdomain_routes.get(request_path).get('endpoint', None)
-        endpoint = matched_route["route"].endpoint
-        middleware_before = matched_route["middleware_before"]
-        middleware_after = matched_route["middleware_after"]
-
-        # 1. Pre-processing (middleware before)
-        for b_middleware in middleware_before:
-            response = await b_middleware.intercept(request)
-            if response is not None:
-                await response(send)
-                return
-
-        # 2. Endpoint functionality
+        # In domainless mode, always use the empty string key for lookup
+        key = "" if getattr(self, "domainless_mode", False) else host_domain
+        domain_routes = self.routes.get(key, {})
+        matched_route = None
+        route_params = None
+        for route_path, route_config in domain_routes.items():
+            route = route_config.get("route", None)
+            if route and hasattr(route, "match"):
+                route_match = route.match(request_path)
+                if route_match:
+                    matched_route = route_config
+                    route_params = route_match.params
+                    break
+            else:
+                if route_path == request.path:
+                    matched_route = route_config
+                    break
+        if not matched_route:
+            response = Response(body="Not Found", status=404)
+            await response(send)
+            return
+        handler = matched_route["handler"]
+        middleware_levels = matched_route["middleware"]["levels"]
+        for level in middleware_levels:
+            for m in level["before"]:
+                response = await m.intercept(request)  # type: ignore[reportUnknownMemberType]
+                if response is not None:
+                    await response(send)
+                    return
         if route_params:
-            response = await endpoint(request, **route_params)
-            #response = await endpoint(None, request, **route_params)
+            response = await handler(request, **route_params)
         else:
-            response = await endpoint(request)
-            #response = await endpoint(None, request)
-
-        # 3. Post-processing (middlewares after)
-        for a_middleware in middleware_after:
-            modified_response = a_middleware.intercept(request, response)
-            if modified_response is not None:
-                response = modified_response
-
+            response = await handler(request)
+        for level in reversed(middleware_levels):
+            for m in level["after"]:
+                modified_response = await m.intercept(request, response)  # type: ignore[reportUnknownMemberType]
+                if modified_response is not None:
+                    response = modified_response
         await response(send)
 
-
-
-
-        
     async def handle_websocket_request(self, scope: ASGIScope, receive: ASGIReceive, send: ASGISend) -> None:
-        raise NotImplementedError
+        """Handle WebSocket requests following the same pattern as HTTP requests."""
+        request_path = scope["path"].encode()
+        host_domain = ""
+
+        # Extract host from headers
+        headers = dict(scope.get("headers", []))
+        host_header = headers.get(b"host", b"").decode()
+        if host_header:
+            host_domain = host_header.split("/")[0] if "/" in host_header else host_header
+
+        if not self._validate_domain_access(host_domain):
+            await send({"type": "websocket.close", "code": 1008, "reason": "Forbidden"})
+            return
+
+        # In domainless mode, always use the empty string key for lookup
+        key = "" if getattr(self, "domainless_mode", False) else host_domain
+        domain_routes = self.routes.get(key, {})
+        matched_route = None
+        route_params = None
+
+        for route_path, route_config in domain_routes.items():
+            route = route_config.get("route", None)
+            if route and hasattr(route, "match"):
+                route_match = route.match(request_path)
+                if route_match:
+                    matched_route = route_config
+                    route_params = route_match.params
+                    break
+            else:
+                if route_path == scope["path"]:
+                    matched_route = route_config
+                    break
+
+        if not matched_route:
+            await send({"type": "websocket.close", "code": 1008, "reason": "Not Found"})
+            return
+
+        handler = matched_route["handler"]
+        middleware_levels = matched_route["middleware"]["levels"]
+
+        # Create a mock request for middleware compatibility
+        request = Request(scope, receive)
+
+        # Run request middleware
+        for level in middleware_levels:
+            for m in level["before"]:
+                response = await m.intercept(request)  # type: ignore[reportUnknownMemberType]
+                if response is not None:
+                    # Middleware decided to close the connection
+                    await send({"type": "websocket.close", "code": 1008, "reason": "Middleware rejected"})
+                    return
+
+        # Call the WebSocket handler to get the response
+        if route_params:
+            response = await handler(request, **route_params)
+        else:
+            response = await handler(request)
+
+        # Run after middleware (same as HTTP)
+        for level in reversed(middleware_levels):
+            for m in level["after"]:
+                modified_response = await m.intercept(request, response)  # type: ignore[reportUnknownMemberType]
+                if modified_response is not None:
+                    response = modified_response
+
+        # Send the WebSocket response (same pattern as HTTP)
+        await response(send)
 
     async def __call__(self, scope: ASGIScope, receive: ASGIReceive, send: ASGISend) -> None:
-        # path = scope["path"]
-
         # Inject ourselves into the chain for later convenience
         scope["app"] = self
 
         # Check scope type and handle accordingly...
         if scope["type"] == "lifespan":
-            #log.debug("Handling lifespan stuff...")
+            log.debug("Handling lifespan stuff...")
             await self.handle_lifespan_request(scope, receive, send)
         elif scope["type"] == "http":
             await self.handle_http_request(scope, receive, send)
@@ -522,16 +468,29 @@ class Future:
         else:
             raise NotImplementedError
 
-
     # FIXME: should this also be async?
-    def run(self, host: str = "127.0.0.1", port: int = 8000, workers: int = 4, tls_key: Optional[str] = None, tls_cert: Optional[str] = None, tls_password: Optional[str] = None) -> None:
-        
+    def run(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        workers: int = 4,
+        tls_key: Optional[str] = None,
+        tls_cert: Optional[str] = None,
+        tls_password: Optional[str] = None,
+    ) -> None:
         # Dynamically get system information
         python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         platform_info = platform.platform()
         arch = platform.machine()
         platform_str = f"{platform_info}-{arch}"
-        future_version = get_version("future")
+        try:
+            future_version = version("future")
+        except PackageNotFoundError:
+            future_version = "not installed"
+        except Exception:
+            future_version = "unknown"
+
+        debug = self.config.get("APP_DEBUG", False) if self.config else False
 
         # ASCII-art "F" made with ✨ sparkles
         left = Text()
@@ -548,13 +507,13 @@ class Future:
         right.add_column(justify="left", no_wrap=True)
         right.add_column(justify="left")
         right.add_row("[red]app:[/]", f"{ self.config['APP_NAME'] }")  # APP_NAME  # TODO: add APP_DOMAIN
-        right.add_row("[red]mode:[/]", f"{ "debug" if self.debug else "prod"} / { workers } worker(s)")  # FIXME
+        right.add_row("[red]mode:[/]", f"{ "debug" if debug else "prod"} / { workers } worker(s)")  # FIXME
         right.add_row("[red]domain:[/]", f"{ self.config["APP_DOMAIN"] if self.config else "N/A" }")  # FIXME
         right.add_row("[red]server:[/]", "future, HTTP/1.1")
         right.add_row("[red]python:[/]", f"{ python_version }")
         right.add_row("[red]platform:[/]", f"{ platform_str }")
         right.add_row("[red]packages[/]:", f"future=={ future_version }")
-        #right.add_row("[red]docs:[/]", f"http://localhost:{port}/docs")
+        # right.add_row("[red]docs:[/]", f"http://localhost:{port}/docs")
 
         # Combined layout
         layout = Table.grid(expand=False)
@@ -562,36 +521,17 @@ class Future:
         layout.add_column(ratio=2)
         layout.add_row(left, right)
 
-        """
-        # Title Panel
-        title_panel = Panel.fit(
-            Text(f"Future v{future_version}", justify="center", style="bold white on black"),
-            box=ROUNDED,
-            padding=(0, 1),
-            subtitle="Serving app @ http://127.0.0.1:9000",
-            subtitle_align="center",
-        )
-        """
-
         main_panel = Panel(layout, box=ROUNDED, padding=(1, 2), expand=False)
         console = Console()
-        #console.print(title_panel)
+        # console.print(title_panel)
         console.print(main_panel)
 
-        """
-        if self.debug:
-            console.rule("[bold red]Running for local development", align="left")
-        else:
-            console.rule("[bold yellow]Running for production", align="left")
-        console.print(f"[bold yellow]Visit http://localhost:{port}/docs")
-        """
-
         uvicorn.run(
-            app="__main__:app", # "app.main.app"
+            app="__main__:app",  # "app.main.app"
             host=host,
             port=port,
             workers=workers,
-            reload=self.debug,
+            reload=debug,
             ssl_keyfile=tls_key,
             ssl_certfile=tls_cert,
             ssl_keyfile_password=tls_password,
@@ -599,7 +539,3 @@ class Future:
             log_level="info",
             lifespan="on",
         )
-
-        #os.environ["APP_ENV"] = "dev"
-        #port = int(os.environ.get("APP_PORT", 44777))
-        # FIXME: move debug flag to app.run() instead of Future()

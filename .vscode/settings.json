@@ -1,8 +1,10 @@
 {
     "python.defaultInterpreterPath": "./.venv",
-    "python.languageServer": "Pylance",
+    "python.languageServer": "None",
     "python.analysis.languageServerMode": "full",
     "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.completeFunctionParens": true,
+    "cursorpyright.analysis.typeCheckingMode": "strict",
     
     "files.exclude": {
         "**/.git": true,
@@ -21,11 +23,9 @@
         ".pytest_cache": true,
         ".mypy_cache": true,
         ".ruff_cache": true,
+
         "poetry.lock": true,
         "poetry.toml": true,
-        "pyproject.toml": false,
-        "tests": false,
-        "boilerplate": false,
         "LICENSE": true
     },
 
@@ -33,5 +33,4 @@
     //"python.testing.pytestArgs": [
     //    "tests"
     //],
-
 }

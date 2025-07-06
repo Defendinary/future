@@ -5,28 +5,50 @@ Next Gen. [ASGI](https://github.com/django/asgiref) Framework for minimal Web AP
 - [ASGI Fundamentals](https://www.youtube.com/watch?v=ai7y--6ElAE&list=PLJ_usHaf3fgO_PgB1zTSlKVSqDdvh49bi)
 
 ## Build Status
-<a href="https://github.com/Defendinary/future/actions"><img src="https://github.com/Defendinary/future/workflows/Test%20Suite/badge.svg" alt="Build Status"></a>
-<a href="https://pypi.org/project/future-api/"><img src="https://badge.fury.io/py/star.svg" alt="Package version"></a>
+[![Build Status](https://github.com/Defendinary/future/workflows/Test%20Suite/badge.svg)](https://github.com/Defendinary/future/actions)
+[![Package version](https://badge.fury.io/py/star.svg)](https://pypi.org/project/future-api/)
 
+<!--[![codecov](https://codecov.io/gh/Defendinary/future/branch/master/graph/badge.svg)](https://codecov.io/gh/Defendinary/future)
+[![Changelog](https://img.shields.io/badge/changelog-v0.14.6-green.svg)](https://github.com/Defendinary/future/blob/master/CHANGELOG.md)-->
 
-# Known bugs
-- Subdomain clobbering since only partial domain is checked. Should probably use full domain in route dictionary.
+## Versioning
 
+This project uses [Semantic Versioning](https://semver.org/) and automatic version incrementing via git tags.
+
+### Current Version
+```bash
+make version
+# Current version: 0.3.1
+```
+
+### GitHub Workflows
+All releases, testing, and publishing are handled automatically by GitHub workflows:
+- **CI**: Runs on every push/PR (linting, type checking, tests, building)
+- **Publish**: Automatically publishes to PyPI when tags are pushed
+- **Versioning**: Uses `poetry-dynamic-versioning` for automatic version management
+
+### Changelog
+See [CHANGELOG.md](CHANGELOG.md) for detailed release history and changes.
 
 # Usage
 ```shell
-$ poetry init myproject
+$ poetry init
+$ poetry add future-api
 $ poetry shell
 
-# https://stackoverflow.com/questions/4830856/is-it-possible-to-use-pip-to-install-a-package-from-a-private-github-repository
-# https://github.com/settings/tokens?type=beta
-$ GH_TOKEN="TOKEN" echo "https://${GH_TOKEN}:@github.com" > ${HOME}/.git-credentials && git config --global credential.helper store
-$ poetry add git+ssh://git@github.com/Defendinary/future.git@master
-#$ poetry add future-api # when released to the public..!
-$ poetry install
+# Scaffold default, nice & clean application structure
+$ future init .
+$ future init projectname
 
-# Scaffold default, nice & clean application structure based on future-broilerplate
-$ future new .
+# Show all routes
+$ future routes
+```
+
+
+## Will be added later
+```shell
+# Run app
+$ future run
 
 # Create new controller
 $ future controller TestController
@@ -36,12 +58,6 @@ $ future middleware TestMiddleware
 
 # Create new model
 $ future model TestModel
-
-# Print all routes
-$ future routes
-
-# Run app
-$ future run
 
 # Install Authentication
 $ future install SSOAuthentication

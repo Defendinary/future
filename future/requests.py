@@ -1,6 +1,6 @@
-from future.types import ASGIScope, ASGIReceive
-#from future.utils import decode_header
-import json
+from typing import Any
+
+from future.types import ASGIReceive, ASGIScope
 
 
 class Request:
@@ -10,10 +10,10 @@ class Request:
         self.method = scope["method"]
         self.path = scope["path"]
         self.headers = dict([(key.decode("utf-8"), value.decode("utf-8")) for key, value in scope["headers"]])  # FIXME: why decode?
-        #self.headers = dict(decode_header(scope["headers"]))
         self.host = self.headers.get("host", "")
         # self.host = dict(scope['headers']).get(b'host', b'').decode()
-        self.context = {}  # for custom data we inject into the request
+        self.context: dict[str, Any] = {}  # for custom data we inject into the request
+        self.scheme = scope["scheme"]
 
     async def body(self) -> bytes:
         more_body = True

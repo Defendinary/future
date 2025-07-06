@@ -1,18 +1,16 @@
-from typing import List
-import strawberry
-import json
-from future.request import Request
-from future.response import Response
 from textwrap import dedent
+
+import strawberry
 
 
 # Sample data
-users_db = [
+db_users = [
     {"id": "1", "name": "Alice", "email": "alice@example.com"},
     {"id": "2", "name": "Bob", "email": "bob@example.com"},
+    {"id": "3", "name": "Charlie", "email": "charlie@example.com"},
 ]
 
-posts_db = [
+db_posts = [
     {"id": "101", "title": "GraphQL vs REST", "content": "GraphQL is amazing!", "author_id": "1"},
     {"id": "102", "title": "Strawberry Rocks", "content": "Strawberry is great for Python!", "author_id": "2"},
 ]
@@ -20,7 +18,6 @@ posts_db = [
 
 # GraphQL queries
 queries = {
-
     "GetEverything": dedent("""
         query GetEverything {
             users {
@@ -33,12 +30,13 @@ queries = {
                 title
                 content
                 author {
+                    id
                     name
+                    email
                 }
             }
         }
     """),  # type: ignore[reportGeneralTypeIssues]
-    
     "GetAllUsers": dedent("""
         query GetAllUsers {
             users {
@@ -46,10 +44,8 @@ queries = {
                 name
                 email
             }
-        }  
+        }
     """),  # type: ignore[reportGeneralTypeIssues]
-    
-
     "GetAllPosts": dedent("""
         query GetAllPosts {
             posts {
@@ -57,23 +53,13 @@ queries = {
                 title
                 content
                 author {
-                id
-                name
-                email
+                    id
+                    name
+                    email
+                }
             }
         }
     """),  # type: ignore[reportGeneralTypeIssues]
-
-    "GetAllUsers": dedent("""
-        query GetAllUsers {
-            users {
-                id
-                name
-                email
-            }
-        }
-    """),  # type: ignore[reportGeneralTypeIssues]
-
     "GetPostsWithAuthors": dedent("""
         query GetPostsWithAuthors {
             posts {
@@ -85,26 +71,8 @@ queries = {
                     email
                 }
             }
-        """),  # type: ignore[reportGeneralTypeIssues]
-    
-    "GetEverything": dedent("""
-        query GetEverything {
-            users {
-                id
-                name
-                email
-            }
-            posts {
-                id
-                title
-                content
-                author {
-                    name
-                }
-            }
         }
     """),  # type: ignore[reportGeneralTypeIssues]
-    
     "GetTitlesAndAuthors": dedent("""
         query GetTitlesAndAuthors {
             posts {
@@ -113,16 +81,8 @@ queries = {
                     name
                 }
             }
-        """),  # type: ignore[reportGeneralTypeIssues]
-    
-    "GetEmails": dedent("""
-        query GetEmails {
-            users {
-                email
-            }   
         }
     """),  # type: ignore[reportGeneralTypeIssues]
-
     "GetEmails": dedent("""
         query GetEmails {
             users {
@@ -130,89 +90,59 @@ queries = {
             }
         }
     """),  # type: ignore[reportGeneralTypeIssues]
-
 }
 
 
-
-# Define types with fields
+# Define GraphQL types
 class User:
-    id: strawberry.ID = strawberry.field()
-    name: str = strawberry.field()
-    email: str = strawberry.field()
+    id: str
+    name: str
+    email: str
+
+    def __init__(self, id: str, name: str, email: str):
+        self.id = id
+        self.name = name
+        self.email = email
+
 
 class Post:
-    id: strawberry.ID = strawberry.field()
-    title: str = strawberry.field()
-    content: str = strawberry.field()
-    author: 'User' = strawberry.field()
+    id: str
+    title: str
+    content: str
+    author: "User"
+
+    def __init__(self, id: str, title: str, content: str, author: "User"):
+        self.id = id
+        self.title = title
+        self.content = content
+        self.author = author
 
 
-
-# Convert to Strawberry types
+# Create Strawberry types
 UserType = strawberry.type(User)
 PostType = strawberry.type(Post)
 
 
-
 # Define resolvers
-async def resolve_users() -> List[UserType]:
-    return [
-        UserType(id=u["id"], name=u["name"], email=u["email"]) 
-        for u in users_db
-    ]
+async def resolve_users() -> list[UserType]:  # type: ignore[misc,valid-type]
+    return [UserType(id=u["id"], name=u["name"], email=u["email"]) for u in db_users]
 
-async def resolve_posts() -> List[PostType]:
+
+async def resolve_posts() -> list[PostType]:  # type: ignore[misc,valid-type]
     posts = []
-    for p in posts_db:
-        author = next(u for u in users_db if u["id"] == p["author_id"])
+    for p in db_posts:
+        author = next(u for u in db_users if u["id"] == p["author_id"])
         user = UserType(id=author["id"], name=author["name"], email=author["email"])
-        post = PostType(
-            id=p["id"],
-            title=p["title"],
-            content=p["content"],
-            author=user
-        )
+        post = PostType(id=p["id"], title=p["title"], content=p["content"], author=user)
         posts.append(post)
     return posts
 
 
-
-# Create Query type
+# Define Query type
 class Query:
     users = strawberry.field(resolver=resolve_users)
     posts = strawberry.field(resolver=resolve_posts)
 
 
-
-
-
-# Create schema
+# NB:!!!!  schema cannot be instantiated in the controller. it breaks then.
 schema = strawberry.Schema(query=strawberry.type(Query))
-
-
-# GraphQL handler
-async def graphql_handler(request: Request) -> Response:
-    body = await request.body()
-    
-    if not body:
-        query = queries["GetEverything"]
-    else:
-        try:
-            query_data = json.loads(body)
-            query = query_data["query"]
-        except (json.JSONDecodeError, KeyError):
-            return Response(
-                body=json.dumps({"error": "Invalid JSON or missing query"}).encode(),
-                status=400
-            )
-
-    result = await schema.execute(query)
-    if result.errors:
-        return Response(
-            body=json.dumps({"errors": [str(error) for error in result.errors]}).encode(),
-            status=400
-        )
-    
-    return Response(body=json.dumps(result.data).encode())
-

@@ -4,7 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "loldebug",
             // "type": "python",
@@ -22,8 +21,8 @@
                 "run",
                 "--host","0.0.0.0",
                 "--port","9000",
-                "--no-debugger",
-                "--no-reload"
+                //"--no-debugger",
+                //"--no-reload"
             ],
             "program": "${file}", // run.py
             "console": "integratedTerminal",

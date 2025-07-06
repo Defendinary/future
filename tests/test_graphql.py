@@ -12,7 +12,7 @@ async def test_graphql() -> None:
             name="test",
             routes=[
                 Get(path="/graphql", endpoint=GraphQLController.query, name="GraphQL")  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
     lifespan = Lifespan()

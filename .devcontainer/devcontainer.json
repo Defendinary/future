@@ -14,7 +14,8 @@
                 //"ms-python.vscode-pylance",
                 "anysphere.pyright",
                 "anysphere.remote-containers",
-                "github.vscode-github-actions"
+                "github.vscode-github-actions",
+                "ms-vscode.makefile-tools"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "./.venv",

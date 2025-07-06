@@ -38,7 +38,7 @@ jobs:
           poetry run ruff format --check --diff future
           poetry run ruff check future
           poetry run mypy future
-          poetry run mypy tests --disable-error-code no-untyped-def --disable-error-code no-untyped-call
+          poetry run mypy tests
 
       - name: Build package
         run: |

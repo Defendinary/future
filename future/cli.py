@@ -8,20 +8,8 @@ from typing import Any
 
 # Boilerplate templates (copied from boilerplate.py)
 APP_ROOT = "app"
-APP_DIRS = [
-    "config",
-    "controllers",
-    "middleware",
-    "models",
-    "plugins"
-]
-PROJECT_FILES = [
-    ".env.example",
-    ".gitignore",
-    "LICENSE",
-    "pyproject.toml",
-    "README.md"
-]
+APP_DIRS = ["config", "controllers", "middleware", "models", "plugins"]
+PROJECT_FILES = [".env.example", ".gitignore", "LICENSE", "pyproject.toml", "README.md"]
 README_MD = """\
 # ✨ Future - Broilerplate ✨
 Boilerplate example for Future
@@ -231,7 +219,7 @@ API_SPEC = {
 }
 """
 
-RUN_PY = '''\
+RUN_PY = """\
 from app.routes import ROUTES
 from future.application import Future
 from future.lifespan import Lifespan
@@ -266,7 +254,8 @@ app.add_routes(routes=ROUTES)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, workers=1)
-'''
+"""
+
 
 def get_app_from_project() -> Any:
     """Dynamically import the app from the current project."""
@@ -288,6 +277,7 @@ def get_app_from_project() -> Any:
     # Try to import from example (for development)
     try:
         from example import app
+
         return app
     except ImportError:
         pass
@@ -295,6 +285,7 @@ def get_app_from_project() -> Any:
     print("Error: Could not find app instance. Make sure you're in a Future project directory.")
     print("Expected to find app in: run.py or example.py")
     sys.exit(1)
+
 
 def print_routes() -> None:
     print("\n=== ROUTE MAPPING ===\n")
@@ -318,6 +309,7 @@ def print_routes() -> None:
             # Determine method (GET for HTTP, WEBSOCKET for WebSocket)
             method = "WEBSOCKET" if "ws" in path else "GET"
             print(f"{method} {full_path}{middleware_str}")
+
 
 def scaffold_project(target_dir: str) -> None:
     target = Path(target_dir)
@@ -358,6 +350,7 @@ def scaffold_project(target_dir: str) -> None:
 
     print(f"Scaffolded new Future project at {target.resolve()}")
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Future Framework CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -380,6 +373,7 @@ def main() -> None:
             scaffold_project(os.path.join(os.getcwd(), args.target))
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

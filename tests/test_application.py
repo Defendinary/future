@@ -12,7 +12,7 @@ async def test_application_setup() -> None:
             subdomain="api",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 

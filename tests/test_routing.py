@@ -12,7 +12,7 @@ async def test_application_subdomains_single_subdomain() -> None:
             subdomain="api",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 
@@ -39,7 +39,7 @@ async def test_application_subdomains_double_subdomain_2() -> None:
             subdomain="api",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 
@@ -66,7 +66,7 @@ async def test_application_subdomains_double_subdomain() -> None:
             subdomain="api",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 
@@ -84,7 +84,6 @@ async def test_application_subdomains_double_subdomain() -> None:
         response = await client.get("http://127.0.0.1/", headers={"Host": f"api.{test_domain}"})
         assert response.status_code == 200
         assert response.text == "✨ Welcome to Future! ✨"
-
 
 
 async def test_route_single_without_domain() -> None:
@@ -136,7 +135,7 @@ async def test_route_group() -> None:
             name="test",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 
@@ -153,7 +152,6 @@ async def test_route_group() -> None:
         response = await client.get("http://127.0.0.1/", headers={"Host": "api.example.com"})
         assert response.status_code == 200
         assert response.text == "✨ Welcome to Future! ✨"
-
 
 
 async def test_single_route_with_domain() -> None:
@@ -176,14 +174,13 @@ async def test_single_route_with_domain() -> None:
         assert response.text == "✨ Welcome to Future! ✨"
 
 
-
 async def test_domain_routing() -> None:
     routes = [
         RouteGroup(
             name="test",
             routes=[
                 Get(path="/", endpoint=WelcomeController.root, name="Welcome"),  # type: ignore[reportAttributeAccessIssue]
-            ]
+            ],
         ),
     ]
 

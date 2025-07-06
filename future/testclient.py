@@ -53,6 +53,7 @@ class FutureTestClient:
 
     async def _create_websocket_connection(self, scope: dict[str, Any]) -> Any:
         """Create a WebSocket connection using ASGI transport."""
+
         # This is a simplified implementation that works with the framework
         class MockWebSocket:
             def __init__(self, scope: dict[str, Any]) -> None:

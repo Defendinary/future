@@ -5,7 +5,7 @@ This is the base Model meant to be used as an interface for other models.
 from datetime import datetime
 
 from pydantic import BaseModel, Field
-from sqlalchemy import INTEGER as Integer  #, select, Text, Boolean, ForeignKey
+from sqlalchemy import INTEGER as Integer  # , select, Text, Boolean, ForeignKey
 from sqlalchemy import TIMESTAMP as Timestamp
 from sqlalchemy import Column, String
 from sqlalchemy.orm import DeclarativeBase

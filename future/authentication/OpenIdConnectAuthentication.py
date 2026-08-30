@@ -2,8 +2,8 @@
 OpenID Connect authentication.
 """
 
-from future.authentication.Authentication import Authentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class OpenIdConnectAuthentication(Authentication):
+class OpenIdConnectAuthentication(IAuthentication):
     auth_type = "oidc"

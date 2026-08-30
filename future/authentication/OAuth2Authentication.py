@@ -2,8 +2,8 @@
 OAuth 2 authentication.
 """
 
-from future.authentication.Authentication import Authentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class OAuth2Authentication(Authentication):
+class OAuth2Authentication(IAuthentication):
     auth_type = "oauth"

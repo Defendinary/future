@@ -4,7 +4,7 @@ from typing import Any
 import json
 
 
-class UploadedFile:
+class UploadedFile:  # FIXME: should not be a class here
     def __init__(self, filename: str, content_type: str, content: bytes):
         self.filename = filename
         self.content_type = content_type

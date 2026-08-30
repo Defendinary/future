@@ -1,15 +1,15 @@
 from typing import Optional
 
 from future.application import Future
-from future.controllers import Controller
-from future.middleware import Middleware
+from future.interfaces.IController import IController
+from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.routing import Get, RouteGroup
 from future.lifespan import Lifespan
-from future.testing import FutureTestClient
+from future.testclient import FutureTestClient
 
 
-class TagA(Middleware):
+class TagA(IMiddleware):
     name = "A"
     tag = "A"
 
@@ -22,7 +22,7 @@ class TagA(Middleware):
         return self.response.json({"order": list(self.request.context["order"])})
 
 
-class TagB(Middleware):
+class TagB(IMiddleware):
     name = "B"
     tag = "B"
 
@@ -35,7 +35,7 @@ class TagB(Middleware):
         return self.response.json({"order": list(self.request.context["order"])})
 
 
-class TagC(Middleware):
+class TagC(IMiddleware):
     name = "C"
     tag = "C"
 
@@ -48,7 +48,7 @@ class TagC(Middleware):
         return self.response.json({"order": list(self.request.context["order"])})
 
 
-class InterruptMiddleware(Middleware):
+class InterruptMiddleware(IMiddleware):
     name = "interrupt"
 
     async def before(self) -> Optional[Response]:
@@ -57,7 +57,7 @@ class InterruptMiddleware(Middleware):
         return None
 
 
-class MwController(Controller):
+class MwController(IController):
     async def ok(self) -> Response:
         return self.response.json({"order": list(self.request.context.get("order", []))})
 

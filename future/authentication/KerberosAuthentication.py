@@ -2,8 +2,8 @@
 Kerberos Single Sign-On authentication.
 """
 
-from future.authentication.Authentication import BaseAuthentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class KerberosAuthentication(BaseAuthentication):
+class KerberosAuthentication(IAuthentication):
     auth_type = "sso"

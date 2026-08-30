@@ -2,8 +2,8 @@
 Keycloak authentication.
 """
 
-from future.authentication.Authentication import Authentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class KeycloakAuthentication(Authentication):
+class KeycloakAuthentication(IAuthentication):
     auth_type = "oauth"

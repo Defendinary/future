@@ -14,7 +14,7 @@ pip install future-framework
 
 ```toml
 # pyproject.toml
-future-framework = "^1.1.0"
+future-framework = "^2.0.0"
 ```
 
 ```python

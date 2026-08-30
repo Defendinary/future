@@ -2,14 +2,15 @@ import asyncio
 
 from typing import Any
 
+from future.interfaces.ITask import ITask
 from future.logger import log
-from future.tasks.scheduler import CronScheduler, Task
+from future.taskscheduler import CronScheduler
 
 
 class Lifespan:
     """ASGI application lifespan: startup / shutdown, with optional cron tasks."""
 
-    def __init__(self, startup_tasks: list[Task] | None = None, shutdown_tasks: list[Task] | None = None, cron_tasks: list[Task] | None = None) -> None:
+    def __init__(self, startup_tasks: list[ITask] | None = None, shutdown_tasks: list[ITask] | None = None, cron_tasks: list[ITask] | None = None) -> None:
         self.app = None
         self.startup_tasks = startup_tasks or []
         self.shutdown_tasks = shutdown_tasks or []
@@ -46,21 +47,11 @@ class Lifespan:
 
     async def _run_startup_tasks(self) -> None:
         for task in self.startup_tasks:
-            if task.func is not None:
-                if asyncio.iscoroutinefunction(task.func):
-                    await task.func(*task.args, **task.kwargs)
-                else:
-                    loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(None, task.func, *task.args, **task.kwargs)
+            await task.run()
 
     async def _run_shutdown_tasks(self) -> None:
         for task in self.shutdown_tasks:
-            if task.func is not None:
-                if asyncio.iscoroutinefunction(task.func):
-                    await task.func(*task.args, **task.kwargs)
-                else:
-                    loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(None, task.func, *task.args, **task.kwargs)
+            await task.run()
 
     async def _register_cron_jobs(self) -> None:
         """Register cron jobs with the scheduler."""

@@ -1,13 +1,13 @@
 # Middleware
-`future.middleware.Middleware` runs around controller actions. Same `request` / `response` injection as controllers.
+`future.interfaces.IMiddleware` runs around controller actions. Same `request` / `response` injection as controllers.
 
 ```python
 from typing import Optional
-from future.middleware import Middleware
+from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.exceptions import HTTPException
 
-class AuthMiddleware(Middleware):
+class AuthMiddleware(IMiddleware):
     async def before(self) -> Optional[Response]:
         if not self.request.headers.get("authorization"):
             raise HTTPException("unauthorized", 401)
@@ -24,7 +24,9 @@ Attach on a group or route: `middlewares=[AuthMiddleware]`.
 - Return a `Response` from `before` to short-circuit (skip the controller)
 
 ## Built-ins
-Exported from `future.middleware`: CORS, GZip, CSRF, RateLimit, Session. Confuser classes exist but are unfinished — see [Gaps](gaps.md).
+Import from the class file: CORS, GZip, CSRF, RateLimit, Session, ScopeValidation. Confuser classes exist but are unfinished — see [Gaps](gaps.md).
+
+`ScopeValidationMiddleware` reads `request.route.scopes` and `request.context["user_id"]` / `request.context["scopes"]` (set by your auth middleware). Missing `user_id` → 401; missing required scope → 403. Routes with no `scopes=` are skipped.
 
 ## Sessions
 ```python

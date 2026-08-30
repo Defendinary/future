@@ -1,8 +1,8 @@
 from future.application import Future
-from future.controllers import WelcomeController
+from future.controllers.WelcomeController import WelcomeController
 from future.lifespan import Lifespan
 from future.routing import Get, RouteGroup
-from future.testing import FutureTestClient
+from future.testclient import FutureTestClient
 
 
 async def test_application_setup() -> None:

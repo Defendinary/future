@@ -208,7 +208,7 @@ def rebuild_spec_from_routes(routes_by_domain, app_config=None):
 
 def openapi_routes(uis=None, path_prefix=None, config=None):
     # Paths are root-relative (`/scalar`, …). Mount with RouteGroup(prefix=...); path_prefix only affects HTML spec URLs.
-    from future.controllers import OpenAPIController
+    from future.controllers.OpenAPIController import OpenAPIController
     global _CONFIG
     cfg = get_openapi_config(config)
     if not cfg.get("enabled", True):

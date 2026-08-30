@@ -8,7 +8,7 @@ Future is built so you can stand up backends for larger applications quickly, wi
 
 **OpenAPI that stays in sync** — Spec and interactive UIs (Swagger, ReDoc, Scalar, RapiDoc) follow your registered routes and docstrings. No parallel hand-maintained catalog of endpoints.
 
-**Active Record, database-agnostic** — One `Model` API across SQLite, MySQL, Postgres, Elasticsearch, MongoDB, ClickHouse, and Redis. Point `DATABASES` at another driver, migrate, and seed again — same models and CLI flow.
+**Active Record, database-agnostic** — One awaitable `IModel` API across SQLite, MySQL, Postgres, Elasticsearch, MongoDB, ClickHouse, and Redis. Point `DATABASES` at another driver, migrate, and seed again — same models and CLI flow.
 
 **Migrations and seeds from models** — Annotate fields on the model; the CLI generates migration and seeder stubs. Run them against whichever connection is configured.
 
@@ -27,12 +27,12 @@ Future is built so you can stand up backends for larger applications quickly, wi
 ## Quick start
 ```python
 from future.application import Future
-from future.controllers import Controller
+from future.interfaces.IController import IController
 from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
-class HomeController(Controller):
+class HomeController(IController):
     async def index(self) -> Response:
         return self.response.json({"ok": True})
 
@@ -67,10 +67,11 @@ Published at [nicolaipre.github.io/future-framework](https://nicolaipre.github.i
 | [Middleware](middleware.md) | `future.middleware` |
 | [WebSockets](websockets.md) | `WebSocket` + `WebSocketResponse` |
 | [Lifespan](lifespan.md) | `future.lifespan` — ASGI startup / cron / shutdown |
-| [Tasks](tasks.md) | `future.tasks` — `Task` / `Unit` |
+| [Tasks](tasks.md) | `future.interfaces.ITask` — scheduled work |
 | [Configuration](configuration.md) | Settings, env, `DATABASES` |
-| [Models](models.md) | `future.models` — annotations; generate migrate/seed |
-| [Database](database.md) | Connections and drivers |
+| [Models](models.md) | `IModel` — annotations; generate migrate/seed |
+| [Database](database.md) | `Database` registry and async drivers |
+| [GraphQL](graphql.md) | Search-term `POST` + Strawberry payload |
 | [Docker](docker.md) | Local DBs for testing |
 | [OpenAPI](openapi.md) | `future.openapi` |
 | [CLI](cli.md) | `future` console script |

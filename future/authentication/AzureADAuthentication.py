@@ -2,8 +2,8 @@
 Azure AD authentication.
 """
 
-from future.authentication.Authentication import BaseAuthentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class AzureADAuthentication(BaseAuthentication):
+class AzureADAuthentication(IAuthentication):
     auth_type = "basic"

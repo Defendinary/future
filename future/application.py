@@ -17,7 +17,7 @@ from rich.text import Text
 
 from future.exceptions import ErrorHandler, HTTPException
 from future.logger import log
-from future.middleware import Middleware
+from future.interfaces.IMiddleware import IMiddleware
 from future.openapi import get_openapi_config, is_docs_path, openapi_routes, rebuild_spec_from_routes, set_openapi_config, spec_path
 from future.request import Request
 from future.response import Response, WebSocketResponse
@@ -80,8 +80,8 @@ class Future:
         self.config = config or {}
         self.databases = self.config.get("DATABASES")
         if self.databases:
-            from future.databases.Connections import Connections
-            Connections().set_connection_details(self.databases)
+            from future.database import Database
+            Database().set_connection_details(self.databases)
 
         domain = self.config.get("APP_DOMAIN", "")
 
@@ -133,7 +133,7 @@ class Future:
                         return cls, endpoint.__name__
         return None, None
 
-    def _add_route(self, route: Route, subdomain: str = "", parent_middlewares: Optional[list[Middleware]] = None, group: Optional[dict[str, str]] = None) -> None:
+    def _add_route(self, route: Route, subdomain: str = "", parent_middlewares: Optional[list[IMiddleware]] = None, group: Optional[dict[str, str]] = None) -> None:
         """Internal method to add single routes to the application.
 
         Args:
@@ -165,7 +165,7 @@ class Future:
             group=group or {"name": "", "prefix": "", "subdomain": ""},
         )
 
-        self._check_route_conflicts(route, key)
+        self._check_route_conflicts(route, key, group)
         # Path + methods so Get("/x") and Post("/x") can coexist
         self.routes[key][f"{','.join(route.methods)} {route.path}"] = route_config
 
@@ -211,7 +211,7 @@ class Future:
         route_group: RouteGroup,
         parent_subdomain: str = "",
         parent_prefix: str = "",
-        parent_middlewares: Optional[list[Middleware]] = None,
+        parent_middlewares: Optional[list[IMiddleware]] = None,
         nesting_depth: int = 0,
         parent_group_names: Optional[list[str]] = None,
     ) -> None:
@@ -310,7 +310,7 @@ class Future:
 
         return full_prefix
 
-    def _check_route_conflicts(self, route: Route, domain: str) -> None:
+    def _check_route_conflicts(self, route: Route, domain: str, group: Optional[dict[str, str]] = None) -> None:
         """Conflict only when the same path shares an HTTP method."""
         existing_routes = self.routes.get(domain, {})
         for existing in existing_routes.values():
@@ -318,8 +318,14 @@ class Future:
             if other is None or getattr(other, "path", None) != route.path:
                 continue
             overlap = set(other.methods) & set(route.methods)
-            if overlap:
-                raise ValueError(f"Route conflict detected: {','.join(sorted(overlap))} {route.path} already exists in domain {domain}")
+            if not overlap:
+                continue
+            methods = ",".join(sorted(overlap))
+            incoming_sub = (group or {}).get("subdomain") or ""
+            existing_sub = (existing.get("group") or {}).get("subdomain") or ""
+            if getattr(self, "domainless_mode", False) and incoming_sub != existing_sub and (incoming_sub or existing_sub):
+                raise ValueError(f"Route conflict detected: {methods} {route.path} already exists. In domainless mode (APP_DOMAIN is empty), RouteGroup subdomains are ignored, so {existing_sub!r} and {incoming_sub!r} both register {route.path}. Set APP_DOMAIN to enable subdomain routing, or use different prefixes.")
+            raise ValueError(f"Route conflict detected: {methods} {route.path} already exists in domain {domain}")
 
     def _validate_domain_access(self, host_domain: str) -> bool:
         """Validate if the host domain is allowed to access routes."""

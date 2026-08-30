@@ -89,6 +89,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="openapi/">OpenAPI</a>
@@ -130,7 +132,7 @@
 <h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
 <p><strong>Routing for real apps</strong> — Group routes with prefixes, subdomains, and shared middleware. Nest groups when APIs grow. Path parameters land as action kwargs.</p>
 <p><strong>OpenAPI that stays in sync</strong> — Spec and interactive UIs (Swagger, ReDoc, Scalar, RapiDoc) follow your registered routes and docstrings. No parallel hand-maintained catalog of endpoints.</p>
-<p><strong>Active Record, database-agnostic</strong> — One <code>Model</code> API across SQLite, MySQL, Postgres, Elasticsearch, MongoDB, ClickHouse, and Redis. Point <code>DATABASES</code> at another driver, migrate, and seed again — same models and CLI flow.</p>
+<p><strong>Active Record, database-agnostic</strong> — One awaitable <code>IModel</code> API across SQLite, MySQL, Postgres, Elasticsearch, MongoDB, ClickHouse, and Redis. Point <code>DATABASES</code> at another driver, migrate, and seed again — same models and CLI flow.</p>
 <p><strong>Migrations and seeds from models</strong> — Annotate fields on the model; the CLI generates migration and seeder stubs. Run them against whichever connection is configured.</p>
 <p><strong>CLI for day-to-day work</strong> — Scaffold a project (<code>future init</code>), generate models / controllers / middleware / migrations / seeds, list routes, migrate, seed, and run the app.</p>
 <p><strong>HTTP and WebSockets</strong> — Familiar request/response builders, middleware <code>before</code> / <code>after</code>, sessions and CORS when you opt in. WebSocket routes use the same grouping and controller pattern.</p>
@@ -144,12 +146,12 @@
 </ol>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.application import Future
-from future.controllers import Controller
+from future.interfaces.IController import IController
 from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
-class HomeController(Controller):
+class HomeController(IController):
     async def index(self) -&gt; Response:
         return self.response.json({&quot;ok&quot;: True})
 
@@ -216,7 +218,7 @@ if __name__ == &quot;__main__&quot;:
 </tr>
 <tr>
 <td><a href="tasks/">Tasks</a></td>
-<td><code>future.tasks</code> — <code>Task</code> / <code>Unit</code></td>
+<td><code>future.interfaces.ITask</code> — scheduled work</td>
 </tr>
 <tr>
 <td><a href="configuration/">Configuration</a></td>
@@ -224,11 +226,15 @@ if __name__ == &quot;__main__&quot;:
 </tr>
 <tr>
 <td><a href="models/">Models</a></td>
-<td><code>future.models</code> — annotations; generate migrate/seed</td>
+<td><code>IModel</code> — annotations; generate migrate/seed</td>
 </tr>
 <tr>
 <td><a href="database/">Database</a></td>
-<td>Connections and drivers</td>
+<td><code>Database</code> registry and async drivers</td>
+</tr>
+<tr>
+<td><a href="graphql/">GraphQL</a></td>
+<td>Search-term <code>POST</code> + Strawberry payload</td>
 </tr>
 <tr>
 <td><a href="docker/">Docker</a></td>
@@ -300,5 +306,5 @@ if __name__ == &quot;__main__&quot;:
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2026-07-23 14:15:56.835560+00:00
+Build Date UTC : 2026-08-30 19:11:23.166323+00:00
 -->

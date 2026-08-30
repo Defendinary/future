@@ -89,6 +89,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -198,25 +200,25 @@ SQLITE_DATABASE = str(config[&quot;sqlite_database&quot;])
 </code></pre>
 <p>Pick <strong>one</strong> loader for the app (dotenv <strong>or</strong> YAML). Controllers and <code>Database.py</code> only import the constants.</p>
 <h2 id="database-map">Database map<a class="headerlink" href="#database-map" title="Permanent link">&para;</a></h2>
-<p><code>app/config/Database.py</code> is data only — no <code>Connections</code> call at import:</p>
-<pre><code class="language-python">from future.databases.SQLite import SQLite
+<p><code>app/config/Database.py</code> is data only — no <code>Database()</code> call at import. <code>Future</code> registers the map from <code>config["DATABASES"]</code>:</p>
+<pre><code class="language-python">from future.databases.SQLiteDatabase import SQLiteDatabase
 from app.config.Settings import DB_DATABASE
 
 DATABASES = {
     &quot;default&quot;: &quot;sqlite&quot;,
-    &quot;sqlite&quot;: SQLite(database=DB_DATABASE),
+    &quot;sqlite&quot;: SQLiteDatabase(database=DB_DATABASE),
 }
 </code></pre>
 <p>Multi-driver example (same pattern — values from Settings):</p>
-<pre><code class="language-python">from future.databases.SQLite import SQLite
-from future.databases.MySQL import MySQL
-from future.databases.Postgres import Postgres
+<pre><code class="language-python">from future.databases.SQLiteDatabase import SQLiteDatabase
+from future.databases.MySQLDatabase import MySQLDatabase
+from future.databases.PostgresDatabase import PostgresDatabase
 # ...
 DATABASES = {
     &quot;default&quot;: &quot;sqlite&quot;,
-    &quot;sqlite&quot;: SQLite(database=SQLITE_DATABASE),
-    &quot;mysql&quot;: MySQL(host=MYSQL_HOST, port=MYSQL_PORT, username=MYSQL_USERNAME, password=MYSQL_PASSWORD, database=MYSQL_DATABASE),
-    &quot;postgres&quot;: Postgres(host=POSTGRES_HOST, port=POSTGRES_PORT, username=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE),
+    &quot;sqlite&quot;: SQLiteDatabase(database=SQLITE_DATABASE),
+    &quot;mysql&quot;: MySQLDatabase(host=MYSQL_HOST, port=MYSQL_PORT, username=MYSQL_USERNAME, password=MYSQL_PASSWORD, database=MYSQL_DATABASE),
+    &quot;postgres&quot;: PostgresDatabase(host=POSTGRES_HOST, port=POSTGRES_PORT, username=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE),
 }
 </code></pre>
 <p>Wire it in <code>run.py</code>:</p>
@@ -250,15 +252,11 @@ app = Future(lifespan=lifespan, config=config)
 </tr>
 <tr>
 <td><code>DATABASES</code></td>
-<td>Connection registry at boot</td>
+<td>Named registry at boot (<code>Database().set_connection_details</code>)</td>
 </tr>
 <tr>
 <td><code>OPENAPI</code></td>
 <td>Docs enablement and UIs</td>
-</tr>
-<tr>
-<td><code>GRAPHQL_SCHEMA</code></td>
-<td>Optional Strawberry schema for <code>GraphQLController</code></td>
 </tr>
 <tr>
 <td><code>APP_ASGI</code></td>
@@ -266,6 +264,7 @@ app = Future(lifespan=lifespan, config=config)
 </tr>
 </tbody>
 </table>
+<p>GraphQL is not a config key — register <code>GraphQLController.query</code> as a route. See <a href="../graphql/">GraphQL</a>.</p>
               
             </div>
           </div><footer>

@@ -3,18 +3,18 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Future" /><link rel="canonical" href="https://nicolaipre.github.io/future-framework/controllers/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Future" /><link rel="canonical" href="https://nicolaipre.github.io/future-framework/graphql/" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Controllers - Future</title>
+    <title>GraphQL - Future</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "Controllers";
-        var mkdocs_page_input_path = "controllers.md";
-        var mkdocs_page_url = "/future-framework/controllers/";
+        var mkdocs_page_name = "GraphQL";
+        var mkdocs_page_input_path = "graphql.md";
+        var mkdocs_page_url = "/future-framework/graphql/";
       </script>
     
     <!--[if lt IE 9]>
@@ -57,11 +57,7 @@
               </ul>
               <p class="caption"><span class="caption-text">Framework</span></p>
               <ul class="current">
-                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Controllers</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#example">Example</a>
-    </li>
-    </ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
@@ -83,7 +79,15 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">GraphQL</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#request">Request</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#response">Response</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#schema">Schema</a>
+    </li>
+    </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
@@ -111,9 +115,9 @@
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
           <li class="breadcrumb-item">Framework</li>
-      <li class="breadcrumb-item active">Controllers</li>
+      <li class="breadcrumb-item active">GraphQL</li>
     <li class="wy-breadcrumbs-aside">
-          <a href="https://github.com/nicolaipre/future-framework/edit/master/docs/controllers.md">Edit on nicolaipre/future-framework</a>
+          <a href="https://github.com/nicolaipre/future-framework/edit/master/docs/graphql.md">Edit on nicolaipre/future-framework</a>
     </li>
   </ul>
   <hr/>
@@ -121,50 +125,88 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="controllers">Controllers<a class="headerlink" href="#controllers" title="Permanent link">&para;</a></h1>
-<p>Controllers get <code>request</code> / <code>response</code> from a base class. Routes are plain lists. No route decorators.</p>
-<p><code>future.interfaces.IController</code> injects them in <code>__init__</code>:</p>
-<pre><code class="language-python">from future.interfaces.IController import IController
-from future.response import Response
+                <h1 id="graphql">GraphQL<a class="headerlink" href="#graphql" title="Permanent link">&para;</a></h1>
+<p><code>GraphQLController.query</code> is a search endpoint. The client posts <strong>field terms</strong>, not a GraphQL document. The controller runs one Active Record query per term, unions hits by id, then Strawberry shapes the JSON (<code>GetEverything</code>).</p>
+<p>Register the route yourself. There is no <code>app.add_graphql_route</code> and no <code>GRAPHQL_SCHEMA</code> config key.</p>
+<pre><code class="language-python">from future.controllers.GraphQLController import GraphQLController
+from future.routing import Post, RouteGroup
 
-class StockController(IController):
-    async def get_stock(self, stock_id: str) -&gt; Response:
-        return self.response.json({&quot;id&quot;: stock_id})
+RouteGroup(
+    name=&quot;Search&quot;,
+    routes=[
+        Post(&quot;/graphql&quot;, GraphQLController.query, &quot;graphql&quot;),
+    ],
+)
 </code></pre>
-<p>Do not add your own <code>__init__</code> unless you need extra deps — Future constructs <code>YourController(request, response)</code> per request.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<pre><code class="language-python">from future.interfaces.IController import IController
-from future.response import Response
-from app.models.Stock import Stock
-
-class StockController(IController):
-    async def get_stocks(self) -&gt; Response:
-        instrument_id = self.request.query.get(&quot;instrument_id&quot;)
-        if instrument_id:
-            stocks = await Stock.where(&quot;instrument_id&quot;, instrument_id).get()
-        else:
-            stocks = await Stock.all()
-        return self.response.json([stock.to_dict() for stock in stocks], status=200)
-
-    async def get_stock(self, stock_id: str) -&gt; Response:
-        stock = await Stock.find(stock_id)
-        if stock is None:
-            return self.response.json({&quot;error&quot;: &quot;Not found&quot;}, status=404)
-        return self.response.json(stock.to_dict(), status=200)
+<h2 id="request">Request<a class="headerlink" href="#request" title="Permanent link">&para;</a></h2>
+<p><code>POST</code> a JSON object. At least one search field is required. <code>limit</code> is optional (default <code>20</code>, clamped to <code>1</code>–<code>100</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Looks up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email</code></td>
+<td><code>UserModel.where("email", …)</code></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>UserModel.where("name", …)</code></td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td><code>UserModel</code> and <code>PostModel</code> by <code>id</code></td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>PostModel.where("title", …)</code></td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td><code>PostModel.where("content", …)</code></td>
+</tr>
+<tr>
+<td><code>author_id</code></td>
+<td><code>PostModel.where("author_id", …)</code></td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>Max rows <strong>per term</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Terms are <strong>separate</strong> searches. <code>{"name": "Alice", "email": "bob@example.com"}</code> can return both users.</p>
+<pre><code class="language-bash">curl -s -X POST http://127.0.0.1:8000/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;email&quot;:&quot;alice@example.com&quot;,&quot;title&quot;:&quot;Strawberry Rocks&quot;}'
 </code></pre>
-<p>Register <strong>class method references</strong>, not instances:</p>
-<pre><code class="language-python">from future.routing import Get
-
-Get(&quot;/stocks&quot;, StockController.get_stocks, &quot;stocks&quot;)
-Get(&quot;/stocks/&lt;str:stock_id&gt;&quot;, StockController.get_stock, &quot;stocks.show&quot;)
+<h2 id="response">Response<a class="headerlink" href="#response" title="Permanent link">&para;</a></h2>
+<p>Always the <code>GetEverything</code> shape. Posts include <code>author</code> (eager-loaded).</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;users&quot;: [{&quot;id&quot;: &quot;1&quot;, &quot;name&quot;: &quot;Alice&quot;, &quot;email&quot;: &quot;alice@example.com&quot;}],
+    &quot;posts&quot;: [{
+      &quot;id&quot;: &quot;102&quot;,
+      &quot;title&quot;: &quot;Strawberry Rocks&quot;,
+      &quot;content&quot;: &quot;Strawberry is great for Python!&quot;,
+      &quot;author&quot;: {&quot;id&quot;: &quot;2&quot;, &quot;name&quot;: &quot;Bob&quot;, &quot;email&quot;: &quot;bob@example.com&quot;}
+    }]
+  }
+}
 </code></pre>
-<p>Path params become action kwargs. See <a href="../routing/">Routing</a>, <a href="../request/">Request</a>, <a href="../response/">Response</a>. Search over the demo user/post models: <a href="../graphql/">GraphQL</a>.</p>
+<p>Missing / empty terms → <code>400</code> <code>{"errors": ["at least one search field required"]}</code>. Non-object JSON or a non-integer <code>limit</code> → <code>400</code> with <code>errors</code>.</p>
+<h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h2>
+<p>Types are <code>UserType = strawberry.type(UserModel)</code> and <code>PostType = strawberry.type(PostModel)</code> on the controller. The nested <code>Query</code> class annotates <code>list[UserModel]</code> / <code>list[PostModel]</code> because <code>UserType</code> is not in that class scope; resolvers still return the Strawberry types.</p>
+<p>The in-repo models are the demo (<code>UserModel</code>, <code>PostModel</code>). An app with other tables writes its own controller the same way: search terms in the action, Strawberry only for the payload shape.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../getting-started/" class="btn btn-neutral float-left" title="Getting started"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../request/" class="btn btn-neutral float-right" title="Request">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../database/" class="btn btn-neutral float-left" title="Database"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../docker/" class="btn btn-neutral float-right" title="Docker">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -191,10 +233,10 @@ Get(&quot;/stocks/&lt;str:stock_id&gt;&quot;, StockController.get_stock, &quot;s
         </span>
     
     
-      <span><a href="../getting-started/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../database/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../request/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../docker/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

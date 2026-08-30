@@ -87,6 +87,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -127,7 +129,7 @@
 <p>Register with <code>WebSocket</code> from <code>future.routing</code>. Dispatch mirrors HTTP: middleware <code>before</code> / <code>after</code>, controller DI, path params. Unhandled errors close with code <strong>1011</strong>.</p>
 <h2 id="route">Route<a class="headerlink" href="#route" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.routing import RouteGroup, WebSocket
-from future.controllers import WebSocketController
+from future.controllers.WebSocketController import WebSocketController
 
 routes = [
     RouteGroup(
@@ -141,10 +143,10 @@ routes = [
 <h2 id="controller">Controller<a class="headerlink" href="#controller" title="Permanent link">&para;</a></h2>
 <p>Return a <code>WebSocketResponse</code> (not a normal HTTP <code>Response</code>):</p>
 <pre><code class="language-python">from typing import Any
-from future.controllers import Controller
+from future.interfaces.IController import IController
 from future.response import WebSocketResponse
 
-class WebSocketController(Controller):
+class WebSocketController(IController):
     async def websocket_handler(self, **params: Any) -&gt; WebSocketResponse:
         message = params.get(&quot;message&quot;, &quot;Hello from WebSocket!&quot;)
         return WebSocketResponse(self.request.receive, message=message)

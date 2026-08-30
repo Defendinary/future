@@ -85,6 +85,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -122,13 +124,13 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="middleware">Middleware<a class="headerlink" href="#middleware" title="Permanent link">&para;</a></h1>
-<p><code>future.middleware.Middleware</code> runs around controller actions. Same <code>request</code> / <code>response</code> injection as controllers.</p>
+<p><code>future.interfaces.IMiddleware</code> runs around controller actions. Same <code>request</code> / <code>response</code> injection as controllers.</p>
 <pre><code class="language-python">from typing import Optional
-from future.middleware import Middleware
+from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.exceptions import HTTPException
 
-class AuthMiddleware(Middleware):
+class AuthMiddleware(IMiddleware):
     async def before(self) -&gt; Optional[Response]:
         if not self.request.headers.get(&quot;authorization&quot;):
             raise HTTPException(&quot;unauthorized&quot;, 401)
@@ -144,7 +146,8 @@ class AuthMiddleware(Middleware):
 <li>Return a <code>Response</code> from <code>before</code> to short-circuit (skip the controller)</li>
 </ul>
 <h2 id="built-ins">Built-ins<a class="headerlink" href="#built-ins" title="Permanent link">&para;</a></h2>
-<p>Exported from <code>future.middleware</code>: CORS, GZip, CSRF, RateLimit, Session. Confuser classes exist but are unfinished — see <a href="../gaps/">Gaps</a>.</p>
+<p>Import from the class file: CORS, GZip, CSRF, RateLimit, Session, ScopeValidation. Confuser classes exist but are unfinished — see <a href="../gaps/">Gaps</a>.</p>
+<p><code>ScopeValidationMiddleware</code> reads <code>request.route.scopes</code> and <code>request.context["user_id"]</code> / <code>request.context["scopes"]</code> (set by your auth middleware). Missing <code>user_id</code> → 401; missing required scope → 403. Routes with no <code>scopes=</code> are skipped.</p>
 <h2 id="sessions">Sessions<a class="headerlink" href="#sessions" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.middleware.SessionMiddleware import SessionMiddleware
 from future.routing import RouteGroup, Get, Post

@@ -91,6 +91,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -174,7 +176,7 @@ if __name__ == &quot;__main__&quot;:
 </code></pre>
 <p>CLI <code>migrate</code> / <code>seed</code> / <code>routes</code> import this <code>app</code> so <code>DATABASES</code> registers the same way as at runtime.</p>
 <h2 id="controllers">Controllers<a class="headerlink" href="#controllers" title="Permanent link">&para;</a></h2>
-<p>See <a href="../controllers/">Controllers</a>. Short version: inherit <code>Controller</code>, use <code>self.request</code> / <code>self.response</code>, register class methods on routes.</p>
+<p>See <a href="../controllers/">Controllers</a>. Short version: inherit <code>IController</code>, use <code>self.request</code> / <code>self.response</code>, register class methods on routes.</p>
 <h2 id="routes-approutespy">Routes (<code>app/routes.py</code>)<a class="headerlink" href="#routes-approutespy" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.openapi import openapi_routes
 from future.routing import RouteGroup, Get

@@ -89,6 +89,8 @@
     </li>
     </ul>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -126,27 +128,31 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="database">Database<a class="headerlink" href="#database" title="Permanent link">&para;</a></h1>
-<p>Connection registry and drivers. Models, migrations, and seeds: see <a href="../models/">Models</a>.</p>
+<p>Named registry and async drivers. Models, migrations, and seeds: see <a href="../models/">Models</a>.</p>
 <h2 id="register-connections">Register connections<a class="headerlink" href="#register-connections" title="Permanent link">&para;</a></h2>
-<p>Define the map in <code>app/config/Database.py</code> (data only — no <code>Connections</code> call at import). Pass it into <code>Future</code> in <code>run.py</code>:</p>
-<pre><code class="language-python">from future.databases.SQLite import SQLite
+<p>Define the map in <code>app/config/Database.py</code> (data only — no registry call at import). Pass it into <code>Future</code> in <code>run.py</code>; boot calls <code>Database().set_connection_details(DATABASES)</code>:</p>
+<pre><code class="language-python">from future.databases.SQLiteDatabase import SQLiteDatabase
 from app.config.Settings import DB_DATABASE
 
 DATABASES = {
     &quot;default&quot;: &quot;sqlite&quot;,
-    &quot;sqlite&quot;: SQLite(database=DB_DATABASE),
+    &quot;sqlite&quot;: SQLiteDatabase(database=DB_DATABASE),
 }
 </code></pre>
-<pre><code class="language-python">config = {
+<pre><code class="language-python">from future.application import Future
+from future.database import Database
+
+config = {
     &quot;APP_DOMAIN&quot;: APP_DOMAIN,
     &quot;APP_NAME&quot;: APP_NAME,
     &quot;DATABASES&quot;: DATABASES,
 }
 app = Future(lifespan=lifespan, config=config)
+# same map: Database().get_connection(&quot;sqlite&quot;)
 </code></pre>
 <p>CLI <code>migrate</code> / <code>seed</code> load <code>run.py</code> so registration matches runtime. Env loading (<code>.env</code> or Ansible YAML): <a href="../configuration/">Configuration</a>.</p>
 <h2 id="per-model-connection">Per-model connection<a class="headerlink" href="#per-model-connection" title="Permanent link">&para;</a></h2>
-<p>Models are not locked to one database. Set <code>__connection__</code> on the model to a key from <code>DATABASES</code> (or <code>"default"</code> for <code>DATABASES["default"]</code>). Migrations inherit that name; see <a href="../models/#connections">Models</a>.</p>
+<p>Models are not locked to one database. Set <code>__connection__</code> on the model to a key from <code>DATABASES</code> (or <code>"default"</code> for <code>DATABASES["default"]</code>). Migrations inherit that name; see <a href="../models/#per-model-connection">Models</a>.</p>
 <h2 id="run-migrations-and-seeds">Run migrations and seeds<a class="headerlink" href="#run-migrations-and-seeds" title="Permanent link">&para;</a></h2>
 <p>Generate files <strong>from model annotations</strong> first (<code>future make:migration</code> / <code>make:seed</code>) — details in <a href="../models/">Models</a>. Then:</p>
 <pre><code class="language-bash">future migrate
@@ -154,7 +160,9 @@ future migrate rollback
 future seed
 future seed StockSeeder
 </code></pre>
+<p>Migrations use <code>async def up</code> / <code>async def down</code> (<code>async with Schema.create(...)</code>, <code>await Schema.drop(...)</code>). Seeders use <code>async def run</code> and <code>await model.save()</code>. The CLI runs them with <code>asyncio.run</code>.</p>
 <h2 id="drivers">Drivers<a class="headerlink" href="#drivers" title="Permanent link">&para;</a></h2>
+<p>Every driver is <strong>async</strong> (<code>create_async_engine</code> + aiosqlite / aiomysql / asyncpg; <code>redis.asyncio</code>; <code>AsyncMongoClient</code>; <code>AsyncElasticsearch</code>; ClickHouse <code>asynch</code>). <code>IDatabase</code> methods are <code>async def</code>.</p>
 <table>
 <thead>
 <tr>
@@ -202,13 +210,14 @@ future seed StockSeeder
 </tbody>
 </table>
 <p>Scaffold default is <strong>SQLite</strong>. Set <code>DB_DATABASE</code> / <code>sqlite_database</code> to a bare name; the driver appends <code>.sqlite</code>.</p>
+<p>Elasticsearch: if <code>host</code> has no <code>://</code>, the driver uses <code>http://{host}:{port or 9200}</code>. A full URL is used as-is. <code>basic_auth</code> is set only when <code>username</code> is set.</p>
 <p>For local MySQL, Postgres, Redis, MongoDB, Elasticsearch, ClickHouse, and RabbitMQ, see the <a href="../docker/">Docker example</a>.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../models/" class="btn btn-neutral float-left" title="Models"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../docker/" class="btn btn-neutral float-right" title="Docker">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../graphql/" class="btn btn-neutral float-right" title="GraphQL">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -238,7 +247,7 @@ future seed StockSeeder
       <span><a href="../models/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../docker/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../graphql/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

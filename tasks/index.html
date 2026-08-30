@@ -73,7 +73,9 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Tasks</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#task-constructor">Task constructor</a>
+    <li class="toctree-l2"><a class="reference internal" href="#itask-fields">ITask fields</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#define-a-task">Define a task</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#wire-into-lifespan">Wire into Lifespan</a>
     </li>
@@ -92,6 +94,8 @@
                   <li class="toctree-l1"><a class="reference internal" href="../models/">Models</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
@@ -130,14 +134,15 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="tasks">Tasks<a class="headerlink" href="#tasks" title="Permanent link">&para;</a></h1>
-<p><code>future.tasks.Task</code> is the unit you pass into <code>Lifespan</code> — once at startup, once at shutdown, or on a fixed interval (<code>cron_tasks</code>).</p>
-<pre><code class="language-python">from future.tasks import Task, Unit
+<p><code>future.interfaces.ITask</code> is the base for scheduled work — extend it, implement <code>async def run</code>, and pass instances into <code>Lifespan</code> (startup, shutdown, or <code>cron_tasks</code>).</p>
+<pre><code class="language-python">from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
 </code></pre>
-<h2 id="task-constructor">Task constructor<a class="headerlink" href="#task-constructor" title="Permanent link">&para;</a></h2>
+<h2 id="itask-fields">ITask fields<a class="headerlink" href="#itask-fields" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Argument</th>
+<th>Attribute</th>
 <th>Role</th>
 </tr>
 </thead>
@@ -145,18 +150,6 @@
 <tr>
 <td><code>name</code></td>
 <td>Label in logs / scheduler</td>
-</tr>
-<tr>
-<td><code>func</code></td>
-<td>Sync or async callable to run</td>
-</tr>
-<tr>
-<td><code>args</code></td>
-<td>Positional args for <code>func</code> (tuple)</td>
-</tr>
-<tr>
-<td><code>kwargs</code></td>
-<td>Keyword args for <code>func</code></td>
 </tr>
 <tr>
 <td><code>interval</code></td>
@@ -176,34 +169,46 @@
 </tr>
 </tbody>
 </table>
-<p>Cron tasks need <code>func</code>, <code>interval</code>, and <code>unit</code>. Startup / shutdown tasks only need <code>name</code> and <code>func</code> (interval is ignored).</p>
+<p>Cron tasks need <code>name</code>, <code>interval</code>, and <code>unit</code>. Startup / shutdown tasks only need <code>name</code> and <code>run</code> (interval is ignored).</p>
+<h2 id="define-a-task">Define a task<a class="headerlink" href="#define-a-task" title="Permanent link">&para;</a></h2>
+<pre><code class="language-python">from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
+
+
+class ScrapeTask(ITask):
+    name = &quot;scrape&quot;
+    interval = 1
+    unit = Unit.HOURS
+
+    async def run(self) -&gt; None:
+        ...
+
+
+class BootTask(ITask):
+    name = &quot;boot&quot;
+
+    async def run(self) -&gt; None:
+        ...
+</code></pre>
 <h2 id="wire-into-lifespan">Wire into Lifespan<a class="headerlink" href="#wire-into-lifespan" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from datetime import datetime, timedelta
 from future.application import Future
 from future.lifespan import Lifespan
-from future.tasks import Task, Unit
-from app.tasks.Scrape import scraper
-from app.tasks.Cleanup import run as cleanup
+from app.tasks.ScrapeTask import ScrapeTask
+from app.tasks.CleanupTask import CleanupTask
+from future.tasks.CheckDNSTask import CheckDNSTask
 
 startup_tasks = [
-    Task(&quot;boot_log&quot;, func=lambda: print(&quot;starting&quot;)),
+    BootTask(),
 ]
 
 shutdown_tasks = [
-    Task(&quot;flush&quot;, func=cleanup),
+    CleanupTask(),
 ]
 
 cron_tasks = [
-    Task(&quot;scrape&quot;, interval=1, unit=Unit.HOURS, func=scraper),
-    Task(&quot;scrape_jitter&quot;, interval=1, unit=Unit.HOURS, func=scraper, jitter=60),
-    Task(
-        &quot;daily_backup&quot;,
-        interval=1,
-        unit=Unit.DAYS,
-        start_time=datetime.now().replace(hour=2, minute=0, second=0, microsecond=0) + timedelta(days=1),
-        func=cleanup,
-    ),
-    Task(&quot;dns&quot;, interval=5, unit=Unit.MINUTES, func=check_dns, args=(&quot;example.com&quot;,)),
+    ScrapeTask(),
+    CheckDNSTask(domain=&quot;example.com&quot;),
 ]
 
 lifespan = Lifespan(
@@ -214,33 +219,21 @@ lifespan = Lifespan(
 app = Future(lifespan=lifespan, config=config)
 </code></pre>
 <h2 id="startup-and-shutdown">Startup and shutdown<a class="headerlink" href="#startup-and-shutdown" title="Permanent link">&para;</a></h2>
-<p>On ASGI lifespan enter, Future runs each <code>startup_tasks</code> entry in order (async <code>await</code>ed, sync in a thread pool), then starts the scheduler and registers <code>cron_tasks</code>.</p>
+<p>On ASGI lifespan enter, Future runs each <code>startup_tasks</code> entry in order (<code>await task.run()</code>), then starts the scheduler and registers <code>cron_tasks</code>.</p>
 <p>On exit, the scheduler stops, then <code>shutdown_tasks</code> run the same way.</p>
-<pre><code class="language-python">async def connect_cache():
-    ...
-
-def close_files():
-    ...
-
-startup_tasks = [Task(&quot;cache&quot;, func=connect_cache)]
-shutdown_tasks = [Task(&quot;files&quot;, func=close_files)]
-</code></pre>
 <h2 id="interval-cron-tasks">Interval (cron) tasks<a class="headerlink" href="#interval-cron-tasks" title="Permanent link">&para;</a></h2>
-<p>Fixed intervals only — not crontab expressions. The scheduler checks about once per second and runs due tasks concurrently (<code>asyncio.create_task</code>). Errors are logged; <code>last_run</code> is not updated on failure so the task retries on the next cycle.</p>
-<pre><code class="language-python">Task(&quot;scrape&quot;, interval=1, unit=Unit.HOURS, func=scraper)
-Task(&quot;ping&quot;, interval=30, unit=Unit.SECONDS, func=ping, kwargs={&quot;url&quot;: &quot;https://example.com&quot;})
-</code></pre>
+<p>Fixed intervals only — not crontab expressions. <code>future.taskscheduler.CronScheduler</code> checks about once per second and runs due tasks concurrently (<code>asyncio.create_task</code>). Errors are logged; <code>last_run</code> is not updated on failure so the task retries on the next cycle.</p>
 <p>Each uvicorn <strong>worker</strong> runs its own scheduler (no cross-worker lock).</p>
 <h2 id="generate-a-task-stub">Generate a task stub<a class="headerlink" href="#generate-a-task-stub" title="Permanent link">&para;</a></h2>
 <pre><code class="language-bash">future make:task Cleanup
 </code></pre>
-<p>Creates something under <code>app/tasks/</code> with a <code>run()</code> (or similar) callable — pass it as <code>func=</code>:</p>
-<pre><code class="language-python">from app.tasks.Cleanup import run
+<p>Creates <code>app/tasks/CleanupTask.py</code> extending <code>ITask</code> — add it to a Lifespan list:</p>
+<pre><code class="language-python">from app.tasks.CleanupTask import CleanupTask
 
-cron_tasks = [Task(&quot;cleanup&quot;, interval=1, unit=Unit.DAYS, func=run)]
+cron_tasks = [CleanupTask()]
 </code></pre>
 <h2 id="built-in-examples">Built-in examples<a class="headerlink" href="#built-in-examples" title="Permanent link">&para;</a></h2>
-<p><code>future.tasks</code> also exports small helpers (<code>check_dns</code>, <code>check_http_status</code>, <code>daily_backup</code>, …) useful as samples. Prefer app-specific modules under <code>app/tasks/</code> for real work.</p>
+<p><code>future.tasks.CheckDNSTask</code>, <code>future.tasks.CheckHttpStatusTask</code>, <code>future.tasks.DailyBackupTask</code>, and similar modules provide small sample tasks. Prefer app-specific modules under <code>app/tasks/</code> for real work.</p>
 <p>See <a href="../lifespan/">Lifespan</a> for the ASGI wrapper that runs these lists.</p>
               
             </div>

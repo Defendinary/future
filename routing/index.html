@@ -89,6 +89,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -140,7 +142,7 @@ Get(&quot;/trades/user/&lt;str:user_id&gt;&quot;, TradeController.get_trades_by_
 <p>Values are kwargs on the action. Patterns: <code>&lt;int:name&gt;</code>, <code>&lt;str:name&gt;</code> / <code>&lt;string:name&gt;</code>, <code>&lt;uuid:name&gt;</code>, plus <code>/users/:id</code> and <code>{id}</code> forms.</p>
 <h2 id="groups">Groups<a class="headerlink" href="#groups" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.openapi import openapi_routes
-from future.middleware import CORSMiddleware
+from future.middleware.CORSMiddleware import CORSMiddleware
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
 from app.controllers.TradeController import TradeController
@@ -171,7 +173,7 @@ routes = [
 </code></pre>
 <ul>
 <li><code>prefix</code> concatenates for nested groups.</li>
-<li><code>subdomain</code> needs a real <code>APP_DOMAIN</code> (ignored when <code>APP_DOMAIN=""</code>).</li>
+<li><code>subdomain</code> needs a real <code>APP_DOMAIN</code>. When <code>APP_DOMAIN=""</code>, RouteGroup subdomains are ignored and every group shares one route table. The same path + method on two groups with different subdomains is a conflict — set <code>APP_DOMAIN</code> or use different prefixes.</li>
 <li>Middleware: see <a href="../middleware/">Middleware</a>.</li>
 </ul>
 <h2 id="websockets">WebSockets<a class="headerlink" href="#websockets" title="Permanent link">&para;</a></h2>

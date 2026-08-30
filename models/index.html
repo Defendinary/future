@@ -79,7 +79,7 @@
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#define-a-model">Define a model</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#connections">Connections</a>
+    <li class="toctree-l2"><a class="reference internal" href="#per-model-connection">Per-model connection</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#annotations-drive-generators">Annotations drive generators</a>
     </li>
@@ -90,6 +90,8 @@
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
@@ -128,15 +130,16 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="models">Models<a class="headerlink" href="#models" title="Permanent link">&para;</a></h1>
-<p>Active Record models live in <code>app/models/</code> and inherit <code>future.models.Model</code>. <strong>Class annotations are the source of truth</strong> for columns — migrations and seeders are generated from them.</p>
+<p>Active Record models live in <code>app/models/</code> and inherit <code>IModel</code>. <strong>Class annotations are the source of truth</strong> for columns — migrations and seeders are generated from them.</p>
+<p>Reads and writes are <strong>awaitable</strong>: <code>find</code> / <code>all</code> / <code>save</code> / <code>delete</code> / <code>update</code> / <code>Query.get</code> / <code>Query.first</code>. <code>where</code> / <code>order_by</code> / <code>limit</code> only build the query.</p>
 <h2 id="define-a-model">Define a model<a class="headerlink" href="#define-a-model" title="Permanent link">&para;</a></h2>
 <pre><code class="language-bash">future make:model Stock
 </code></pre>
-<pre><code class="language-python">from future.models import Model
+<pre><code class="language-python">from future.interfaces.IModel import IModel
 
-class Stock(Model):
+class Stock(IModel):
     # __table__ = &quot;stocks&quot;        # optional; default is tableized class name (Stock → stocks)
-    # __connection__ = &quot;default&quot;  # name from DATABASES / Connections
+    # __connection__ = &quot;default&quot;  # name from DATABASES / Database()
 
     id: str
     name: str
@@ -145,17 +148,17 @@ class Stock(Model):
     price: float | None
 </code></pre>
 <p>Register connections in <a href="../configuration/">Configuration</a> / <a href="../database/">Database</a> before using the model at runtime or in CLI.</p>
-<h2 id="connections">Connections<a class="headerlink" href="#connections" title="Permanent link">&para;</a></h2>
+<h2 id="per-model-connection">Per-model connection<a class="headerlink" href="#per-model-connection" title="Permanent link">&para;</a></h2>
 <p><code>__connection__</code> selects which entry in <code>DATABASES</code> the model uses. Default is <code>"default"</code>, which resolves to the name in <code>DATABASES["default"]</code> (e.g. <code>"sqlite"</code>). Set it to any other registered key to put a model on a different store:</p>
-<pre><code class="language-python">from future.models import Model
+<pre><code class="language-python">from future.interfaces.IModel import IModel
 
-class Stock(Model):
+class Stock(IModel):
     __connection__ = &quot;default&quot;   # → DATABASES[&quot;default&quot;] → e.g. sqlite
 
-class Trade(Model):
+class Trade(IModel):
     __connection__ = &quot;mysql&quot;     # → DATABASES[&quot;mysql&quot;]
 
-class Event(Model):
+class Event(IModel):
     __connection__ = &quot;postgres&quot;  # → DATABASES[&quot;postgres&quot;]
 </code></pre>
 <p><code>future make:migration</code> copies the model’s <code>__connection__</code> onto the migration class. <code>future migrate</code> / <code>rollback</code> apply each migration on that connection (migration history is tracked per connection). Seeders call the model’s own <code>save()</code> / queries, so they follow the model connection automatically.</p>
@@ -176,33 +179,32 @@ future seed StockSeeder       # one class name
 </code></pre>
 <p>Prefer either <code>make:migration Stock</code> <strong>or</strong> <code>make:migrations</code> for the same model in one session — not both (duplicate files).</p>
 <p>Generated migration (from the <code>Stock</code> annotations above):</p>
-<pre><code class="language-python">from future.migrations.Migration import Migration
-from future.migrations.Schema import Schema
+<pre><code class="language-python">from future.migrations import Migration, Schema
 
 class CreateStocks(Migration):
     __connection__ = &quot;default&quot;
 
-    def up(self):
-        with Schema.create(&quot;stocks&quot;) as table:
+    async def up(self):
+        async with Schema.create(&quot;stocks&quot;) as table:
             table.id()
             table.string(&quot;name&quot;)
             table.string(&quot;symbol&quot;)
             table.string(&quot;instrument_id&quot;)
             table.float(&quot;price&quot;).nullable()
 
-    def down(self):
-        Schema.drop(&quot;stocks&quot;)
+    async def down(self):
+        await Schema.drop(&quot;stocks&quot;)
 </code></pre>
 <p>Generated seeder uses the model fields (Faker stubs):</p>
 <pre><code class="language-python">from faker import Faker
-from future.seeds.Seeder import Seeder
+from future.seeder import Seeder
 from app.models.Stock import Stock
 
 class StockSeeder(Seeder):
-    def run(self):
+    async def run(self):
         fake = Faker()
         for _ in range(10):
-            Stock(
+            await Stock(
                 id=fake.uuid4(),
                 name=fake.company(),
                 symbol=fake.unique.lexify(text=&quot;????&quot;).upper(),
@@ -213,27 +215,27 @@ class StockSeeder(Seeder):
 <p>Edit generated files if you need indexes, extras, or richer seed data. Re-running generators does not replace hand-edited migrations; seeds skip existing files on <code>make:seeds</code>.</p>
 <h2 id="crud">CRUD<a class="headerlink" href="#crud" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">stock = Stock(id=&quot;1&quot;, name=&quot;Equinor&quot;, symbol=&quot;EQNR&quot;, instrument_id=&quot;16105067&quot;, price=250.0)
-stock.save()
+await stock.save()
 
-stock = Stock.find(&quot;1&quot;)
-stocks = Stock.all()
+stock = await Stock.find(&quot;1&quot;)
+stocks = await Stock.all()
 stock.price = 251.0
-stock.save()
-stock.delete()
+await stock.save()
+await stock.delete()
 </code></pre>
 <h2 id="query">Query<a class="headerlink" href="#query" title="Permanent link">&para;</a></h2>
-<p><code>where</code> / <code>order_by</code> return a <strong>Query</strong> — call <code>.get()</code> or <code>.first()</code> to hit the DB:</p>
-<pre><code class="language-python">Stock.where(&quot;symbol&quot;, &quot;EQNR&quot;).first()
-Stock.where(&quot;price&quot;, &quot;&gt;&quot;, 100).order_by(&quot;price&quot;, &quot;desc&quot;).get()
-Stock.where(&quot;name&quot;, &quot;like&quot;, &quot;%Equinor%&quot;).limit(20).get()
+<p><code>where</code> / <code>order_by</code> / <code>limit</code> return a <strong>Query</strong> — <code>await</code> <code>.get()</code> or <code>.first()</code> to hit the DB:</p>
+<pre><code class="language-python">await Stock.where(&quot;symbol&quot;, &quot;EQNR&quot;).first()
+await Stock.where(&quot;price&quot;, &quot;&gt;&quot;, 100).order_by(&quot;price&quot;, &quot;desc&quot;).get()
+await Stock.where(&quot;name&quot;, &quot;like&quot;, &quot;%Equinor%&quot;).limit(20).get()
 </code></pre>
 <p>In a controller:</p>
 <pre><code class="language-python">async def get_stocks(self) -&gt; Response:
     ticker = self.request.query.get(&quot;ticker&quot;)
     if ticker:
-        stocks = Stock.where(&quot;symbol&quot;, ticker).get()
+        stocks = await Stock.where(&quot;symbol&quot;, ticker).get()
     else:
-        stocks = Stock.all()
+        stocks = await Stock.all()
     return self.response.json([s.to_dict() for s in stocks], status=200)
 </code></pre>
 <p>See <a href="../cli/">CLI</a> for the full command list and <a href="../database/">Database</a> for drivers and connection registration.</p>

@@ -85,6 +85,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
@@ -124,19 +126,23 @@
                 <h1 id="lifespan">Lifespan<a class="headerlink" href="#lifespan" title="Permanent link">&para;</a></h1>
 <p><code>future.lifespan.Lifespan</code> is the ASGI lifespan hook required by <code>Future</code>. You pass in lists of <a href="../tasks/">Tasks</a> to run at startup, on a schedule while the app is up, and at shutdown.</p>
 <pre><code class="language-python">from future.lifespan import Lifespan
-from future.tasks import Task, Unit
+from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
 from future.application import Future
+from app.tasks.ScrapeTask import ScrapeTask
+
+
+class BootTask(ITask):
+    name = &quot;boot&quot;
+
+    async def run(self) -&gt; None:
+        ...
+
 
 lifespan = Lifespan(
-    startup_tasks=[
-        Task(&quot;boot&quot;, func=on_boot),
-    ],
-    shutdown_tasks=[
-        Task(&quot;teardown&quot;, func=on_shutdown),
-    ],
-    cron_tasks=[
-        Task(&quot;scrape&quot;, interval=1, unit=Unit.HOURS, func=scraper),
-    ],
+    startup_tasks=[BootTask()],
+    shutdown_tasks=[],
+    cron_tasks=[ScrapeTask()],
 )
 app = Future(lifespan=lifespan, config=config)
 </code></pre>
@@ -168,12 +174,12 @@ app = Future(lifespan=lifespan, config=config)
 </code></pre>
 <h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Run <code>startup_tasks</code> (async awaited, sync in a thread pool).</li>
+<li>Run <code>startup_tasks</code> (<code>await task.run()</code>).</li>
 <li>Start <code>CronScheduler</code> and register <code>cron_tasks</code>.</li>
 <li>App serves traffic; interval tasks fire in the background.</li>
 <li>On shutdown: stop the scheduler, then run <code>shutdown_tasks</code>.</li>
 </ol>
-<p>How to build a <code>Task</code> (name, <code>func</code>, interval, jitter, …): see <a href="../tasks/">Tasks</a>.</p>
+<p>How to build an <code>ITask</code> (name, interval, jitter, …): see <a href="../tasks/">Tasks</a>.</p>
               
             </div>
           </div><footer>

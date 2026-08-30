@@ -2,8 +2,8 @@
 SAML Single Sign-On authentication.
 """
 
-from future.authentication.Authentication import Authentication
+from future.interfaces.IAuthentication import IAuthentication
 
 
-class SAMLAuthentication(Authentication):
+class SAMLAuthentication(IAuthentication):
     auth_type = "sso"

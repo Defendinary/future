@@ -1,28 +1,41 @@
 from future.application import Future
-from future.controllers import Controller
-from future.databases.Connections import Connections
-from future.databases.SQLite import SQLite
-from future.middleware import CORSMiddleware, GZipMiddleware, SessionMiddleware
+from future.interfaces.IController import IController
+from future.database import Database
+from future.databases.SQLiteDatabase import SQLiteDatabase
+from future.middleware.CORSMiddleware import CORSMiddleware
+from future.middleware.GZipMiddleware import GZipMiddleware
+from future.middleware.ScopeValidationMiddleware import ScopeValidationMiddleware
+from future.middleware.SessionMiddleware import SessionMiddleware
 from future.middleware.SessionMiddleware import SESSION_COOKIE_NAME
-from future.models import Model
+from future.interfaces.IMiddleware import IMiddleware
+from future.interfaces.IModel import IModel
 from future.openapi import rebuild_spec_from_routes
 from future.response import Response
 from future.routing import Get, RouteGroup
 from future.lifespan import Lifespan
-from future.testing import FutureTestClient
+from future.testclient import FutureTestClient
 
 
-class BadController(Controller):
+class BadController(IController):
     async def index(self):
         return {"ok": True}
 
 
-class GoodController(Controller):
+class GoodController(IController):
     async def index(self) -> Response:
         return self.response.json({"ok": True})
 
 
-class SessionController(Controller):
+class GrantScopes(IMiddleware):
+    async def before(self):
+        header = self.request.headers.get("x-scopes")
+        if header:
+            self.request.context["user_id"] = "u1"
+            self.request.context["scopes"] = [part for part in header.split(",") if part]
+        return None
+
+
+class SessionController(IController):
     async def login(self) -> Response:
         self.request.session["user"] = "alice"
         return self.response.json({"ok": True})
@@ -32,7 +45,7 @@ class SessionController(Controller):
         return self.response.json({"ok": True})
 
 
-class Item(Model):
+class Item(IModel):
     __connection__ = "default"
     __table__ = "gap_items"
     id: str
@@ -124,19 +137,32 @@ async def test_gzip_middleware():
         assert response.json() == {"ok": True}
 
 
-def test_future_registers_databases_from_config():
-    Connections._connections = {}
-    Connections._default = None
-    databases = {"default": "sqlite", "sqlite": SQLite(database=":memory:")}
+async def test_future_registers_databases_from_config():
+    Database._connections = {}
+    Database._default = None
+    databases = {"default": "sqlite", "sqlite": SQLiteDatabase(database=":memory:")}
     app = Future(lifespan=Lifespan(), config=_base_config(DATABASES=databases))
     assert app.databases is databases
-    connection = Connections().get_connection("default")
-    from future.migrations.Blueprint import Blueprint
+    connection = Database().get_connection("default")
+    from future.migrations import Blueprint
     blueprint = Blueprint("gap_items", "default", action="create")
     blueprint.id()
     blueprint.string("name")
-    connection.schema_create(blueprint)
-    Item(id="1", name="wired").save()
-    found = Item.find("1")
+    await connection.schema_create(blueprint)
+    await Item(id="1", name="wired").save()
+    found = await Item.find("1")
     assert found is not None
     assert found.name == "wired"
+
+
+async def test_scope_validation_uses_context_scopes():
+    app = Future(lifespan=Lifespan(), config=_base_config())
+    app.add_routes([RouteGroup(name="Main", middlewares=[GrantScopes, ScopeValidationMiddleware], routes=[Get("/x", GoodController.index, "x", scopes=["read:api"])])])
+    async with FutureTestClient(app) as client:
+        missing_user = await client.get("http://127.0.0.1/x")
+        assert missing_user.status_code == 401
+        denied = await client.get("http://127.0.0.1/x", headers={"x-scopes": "write:api"})
+        assert denied.status_code == 403
+        allowed = await client.get("http://127.0.0.1/x", headers={"x-scopes": "read:api"})
+        assert allowed.status_code == 200
+        assert allowed.json() == {"ok": True}

@@ -23,7 +23,7 @@ Values are kwargs on the action. Patterns: `<int:name>`, `<str:name>` / `<string
 ## Groups
 ```python
 from future.openapi import openapi_routes
-from future.middleware import CORSMiddleware
+from future.middleware.CORSMiddleware import CORSMiddleware
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
 from app.controllers.TradeController import TradeController
@@ -54,7 +54,7 @@ routes = [
 ```
 
 - `prefix` concatenates for nested groups.
-- `subdomain` needs a real `APP_DOMAIN` (ignored when `APP_DOMAIN=""`).
+- `subdomain` needs a real `APP_DOMAIN`. When `APP_DOMAIN=""`, RouteGroup subdomains are ignored and every group shares one route table. The same path + method on two groups with different subdomains is a conflict — set `APP_DOMAIN` or use different prefixes.
 - Middleware: see [Middleware](middleware.md).
 
 ## WebSockets

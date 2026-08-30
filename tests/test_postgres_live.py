@@ -1,17 +1,16 @@
 import pytest
-from sqlalchemy import create_engine, text
 
-from future.databases.Connections import Connections
-from future.databases.Postgres import Postgres
-from future.migrations.Schema import Schema
-from future.models import Model
+from future.database import Database
+from future.databases.PostgresDatabase import PostgresDatabase
+from future.migrations import Schema
+from future.interfaces.IModel import IModel
 
 
 def _postgres_ready() -> bool:
+    import socket
     try:
-        engine = create_engine("postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/st0nkz")
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        sock = socket.create_connection(("127.0.0.1", 5432), timeout=0.5)
+        sock.close()
         return True
     except Exception:
         return False
@@ -20,35 +19,35 @@ def _postgres_ready() -> bool:
 pytestmark = pytest.mark.skipif(not _postgres_ready(), reason="Postgres st0nkz not reachable at 127.0.0.1:5432")
 
 
-class Widget(Model):
+class Widget(IModel):
     __table__ = "widgets_test"
     __connection__ = "postgres"
 
 
-def test_postgres_schema_seed_and_query():
-    postgres = Postgres(host="127.0.0.1", port=5432, username="postgres", password="postgres", database="st0nkz")
-    Connections().set_connection_details({"default": "postgres", "postgres": postgres})
-    postgres.schema_drop("widgets_test")
+async def test_postgres_schema_seed_and_query():
+    postgres = PostgresDatabase(host="127.0.0.1", port=5432, username="postgres", password="postgres", database="st0nkz")
+    Database().set_connection_details({"default": "postgres", "postgres": postgres})
+    await postgres.schema_drop("widgets_test")
     Schema.connection("postgres")
-    with Schema.create("widgets_test") as table:
+    async with Schema.create("widgets_test") as table:
         table.id()
         table.string("name")
         table.float("price")
 
-    Widget(id="w1", name="alpha", price=10.5).save()
-    Widget(id="w2", name="beta", price=20.0).save()
+    await Widget(id="w1", name="alpha", price=10.5).save()
+    await Widget(id="w2", name="beta", price=20.0).save()
 
-    found = Widget.find("w1")
+    found = await Widget.find("w1")
     assert found is not None and found.name == "alpha"
 
-    rows = Widget.where("price", ">", 15).order_by("price", "desc").get()
+    rows = await Widget.where("price", ">", 15).order_by("price", "desc").get()
     assert len(rows) == 1 and rows[0].id == "w2"
 
-    found.update(price=11.0)
-    assert Widget.find("w1").price == 11.0 or float(Widget.find("w1").price) == 11.0
+    await found.update(price=11.0)
+    assert float((await Widget.find("w1")).price) == 11.0
 
-    found.delete()
-    assert Widget.find("w1") is None
-    assert len(Widget.all()) == 1
+    await found.delete()
+    assert await Widget.find("w1") is None
+    assert len(await Widget.all()) == 1
 
-    postgres.schema_drop("widgets_test")
+    await postgres.schema_drop("widgets_test")

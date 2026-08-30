@@ -3,19 +3,23 @@
 
 ```python
 from future.lifespan import Lifespan
-from future.tasks import Task, Unit
+from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
 from future.application import Future
+from app.tasks.ScrapeTask import ScrapeTask
+
+
+class BootTask(ITask):
+    name = "boot"
+
+    async def run(self) -> None:
+        ...
+
 
 lifespan = Lifespan(
-    startup_tasks=[
-        Task("boot", func=on_boot),
-    ],
-    shutdown_tasks=[
-        Task("teardown", func=on_shutdown),
-    ],
-    cron_tasks=[
-        Task("scrape", interval=1, unit=Unit.HOURS, func=scraper),
-    ],
+    startup_tasks=[BootTask()],
+    shutdown_tasks=[],
+    cron_tasks=[ScrapeTask()],
 )
 app = Future(lifespan=lifespan, config=config)
 ```
@@ -34,9 +38,9 @@ Lifespan(startup_tasks=[], shutdown_tasks=[], cron_tasks=[])
 ```
 
 ## Lifecycle
-1. Run `startup_tasks` (async awaited, sync in a thread pool).
+1. Run `startup_tasks` (`await task.run()`).
 2. Start `CronScheduler` and register `cron_tasks`.
 3. App serves traffic; interval tasks fire in the background.
 4. On shutdown: stop the scheduler, then run `shutdown_tasks`.
 
-How to build a `Task` (name, `func`, interval, jitter, …): see [Tasks](tasks.md).
+How to build an `ITask` (name, interval, jitter, …): see [Tasks](tasks.md).

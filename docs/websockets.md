@@ -4,7 +4,7 @@ Register with `WebSocket` from `future.routing`. Dispatch mirrors HTTP: middlewa
 ## Route
 ```python
 from future.routing import RouteGroup, WebSocket
-from future.controllers import WebSocketController
+from future.controllers.WebSocketController import WebSocketController
 
 routes = [
     RouteGroup(
@@ -21,10 +21,10 @@ Return a `WebSocketResponse` (not a normal HTTP `Response`):
 
 ```python
 from typing import Any
-from future.controllers import Controller
+from future.interfaces.IController import IController
 from future.response import WebSocketResponse
 
-class WebSocketController(Controller):
+class WebSocketController(IController):
     async def websocket_handler(self, **params: Any) -> WebSocketResponse:
         message = params.get("message", "Hello from WebSocket!")
         return WebSocketResponse(self.request.receive, message=message)

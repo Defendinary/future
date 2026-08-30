@@ -1,52 +1,64 @@
 # Tasks
-`future.tasks.Task` is the unit you pass into `Lifespan` — once at startup, once at shutdown, or on a fixed interval (`cron_tasks`).
+`future.interfaces.ITask` is the base for scheduled work — extend it, implement `async def run`, and pass instances into `Lifespan` (startup, shutdown, or `cron_tasks`).
 
 ```python
-from future.tasks import Task, Unit
+from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
 ```
 
-## Task constructor
-| Argument | Role |
-|----------|------|
+## ITask fields
+| Attribute | Role |
+|-----------|------|
 | `name` | Label in logs / scheduler |
-| `func` | Sync or async callable to run |
-| `args` | Positional args for `func` (tuple) |
-| `kwargs` | Keyword args for `func` |
 | `interval` | How often (required for `cron_tasks`) |
 | `unit` | `Unit.SECONDS` / `MINUTES` / `HOURS` / `DAYS` |
 | `start_time` | First run time (`datetime`); default is “now” when registered |
 | `jitter` | Optional extra delay `0 … jitter` seconds on each next-run calculation |
 
-Cron tasks need `func`, `interval`, and `unit`. Startup / shutdown tasks only need `name` and `func` (interval is ignored).
+Cron tasks need `name`, `interval`, and `unit`. Startup / shutdown tasks only need `name` and `run` (interval is ignored).
+
+## Define a task
+```python
+from future.interfaces.ITask import ITask
+from future.taskscheduler import Unit
+
+
+class ScrapeTask(ITask):
+    name = "scrape"
+    interval = 1
+    unit = Unit.HOURS
+
+    async def run(self) -> None:
+        ...
+
+
+class BootTask(ITask):
+    name = "boot"
+
+    async def run(self) -> None:
+        ...
+```
 
 ## Wire into Lifespan
 ```python
 from datetime import datetime, timedelta
 from future.application import Future
 from future.lifespan import Lifespan
-from future.tasks import Task, Unit
-from app.tasks.Scrape import scraper
-from app.tasks.Cleanup import run as cleanup
+from app.tasks.ScrapeTask import ScrapeTask
+from app.tasks.CleanupTask import CleanupTask
+from future.tasks.CheckDNSTask import CheckDNSTask
 
 startup_tasks = [
-    Task("boot_log", func=lambda: print("starting")),
+    BootTask(),
 ]
 
 shutdown_tasks = [
-    Task("flush", func=cleanup),
+    CleanupTask(),
 ]
 
 cron_tasks = [
-    Task("scrape", interval=1, unit=Unit.HOURS, func=scraper),
-    Task("scrape_jitter", interval=1, unit=Unit.HOURS, func=scraper, jitter=60),
-    Task(
-        "daily_backup",
-        interval=1,
-        unit=Unit.DAYS,
-        start_time=datetime.now().replace(hour=2, minute=0, second=0, microsecond=0) + timedelta(days=1),
-        func=cleanup,
-    ),
-    Task("dns", interval=5, unit=Unit.MINUTES, func=check_dns, args=("example.com",)),
+    ScrapeTask(),
+    CheckDNSTask(domain="example.com"),
 ]
 
 lifespan = Lifespan(
@@ -58,28 +70,12 @@ app = Future(lifespan=lifespan, config=config)
 ```
 
 ## Startup and shutdown
-On ASGI lifespan enter, Future runs each `startup_tasks` entry in order (async `await`ed, sync in a thread pool), then starts the scheduler and registers `cron_tasks`.
+On ASGI lifespan enter, Future runs each `startup_tasks` entry in order (`await task.run()`), then starts the scheduler and registers `cron_tasks`.
 
 On exit, the scheduler stops, then `shutdown_tasks` run the same way.
 
-```python
-async def connect_cache():
-    ...
-
-def close_files():
-    ...
-
-startup_tasks = [Task("cache", func=connect_cache)]
-shutdown_tasks = [Task("files", func=close_files)]
-```
-
 ## Interval (cron) tasks
-Fixed intervals only — not crontab expressions. The scheduler checks about once per second and runs due tasks concurrently (`asyncio.create_task`). Errors are logged; `last_run` is not updated on failure so the task retries on the next cycle.
-
-```python
-Task("scrape", interval=1, unit=Unit.HOURS, func=scraper)
-Task("ping", interval=30, unit=Unit.SECONDS, func=ping, kwargs={"url": "https://example.com"})
-```
+Fixed intervals only — not crontab expressions. `future.taskscheduler.CronScheduler` checks about once per second and runs due tasks concurrently (`asyncio.create_task`). Errors are logged; `last_run` is not updated on failure so the task retries on the next cycle.
 
 Each uvicorn **worker** runs its own scheduler (no cross-worker lock).
 
@@ -88,15 +84,15 @@ Each uvicorn **worker** runs its own scheduler (no cross-worker lock).
 future make:task Cleanup
 ```
 
-Creates something under `app/tasks/` with a `run()` (or similar) callable — pass it as `func=`:
+Creates `app/tasks/CleanupTask.py` extending `ITask` — add it to a Lifespan list:
 
 ```python
-from app.tasks.Cleanup import run
+from app.tasks.CleanupTask import CleanupTask
 
-cron_tasks = [Task("cleanup", interval=1, unit=Unit.DAYS, func=run)]
+cron_tasks = [CleanupTask()]
 ```
 
 ## Built-in examples
-`future.tasks` also exports small helpers (`check_dns`, `check_http_status`, `daily_backup`, …) useful as samples. Prefer app-specific modules under `app/tasks/` for real work.
+`future.tasks.CheckDNSTask`, `future.tasks.CheckHttpStatusTask`, `future.tasks.DailyBackupTask`, and similar modules provide small sample tasks. Prefer app-specific modules under `app/tasks/` for real work.
 
 See [Lifespan](lifespan.md) for the ASGI wrapper that runs these lists.

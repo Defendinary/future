@@ -52,7 +52,7 @@ if __name__ == "__main__":
 CLI `migrate` / `seed` / `routes` import this `app` so `DATABASES` registers the same way as at runtime.
 
 ## Controllers
-See [Controllers](controllers.md). Short version: inherit `Controller`, use `self.request` / `self.response`, register class methods on routes.
+See [Controllers](controllers.md). Short version: inherit `IController`, use `self.request` / `self.response`, register class methods on routes.
 
 ## Routes (`app/routes.py`)
 ```python

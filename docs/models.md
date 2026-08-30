@@ -1,5 +1,7 @@
 # Models
-Active Record models live in `app/models/` and inherit `future.models.Model`. **Class annotations are the source of truth** for columns — migrations and seeders are generated from them.
+Active Record models live in `app/models/` and inherit `IModel`. **Class annotations are the source of truth** for columns — migrations and seeders are generated from them.
+
+Reads and writes are **awaitable**: `find` / `all` / `save` / `delete` / `update` / `Query.get` / `Query.first`. `where` / `order_by` / `limit` only build the query.
 
 ## Define a model
 ```bash
@@ -7,11 +9,11 @@ future make:model Stock
 ```
 
 ```python
-from future.models import Model
+from future.interfaces.IModel import IModel
 
-class Stock(Model):
+class Stock(IModel):
     # __table__ = "stocks"        # optional; default is tableized class name (Stock → stocks)
-    # __connection__ = "default"  # name from DATABASES / Connections
+    # __connection__ = "default"  # name from DATABASES / Database()
 
     id: str
     name: str
@@ -22,27 +24,25 @@ class Stock(Model):
 
 Register connections in [Configuration](configuration.md) / [Database](database.md) before using the model at runtime or in CLI.
 
-
-## Connections
+## Per-model connection
 `__connection__` selects which entry in `DATABASES` the model uses. Default is `"default"`, which resolves to the name in `DATABASES["default"]` (e.g. `"sqlite"`). Set it to any other registered key to put a model on a different store:
 
 ```python
-from future.models import Model
+from future.interfaces.IModel import IModel
 
-class Stock(Model):
+class Stock(IModel):
     __connection__ = "default"   # → DATABASES["default"] → e.g. sqlite
 
-class Trade(Model):
+class Trade(IModel):
     __connection__ = "mysql"     # → DATABASES["mysql"]
 
-class Event(Model):
+class Event(IModel):
     __connection__ = "postgres"  # → DATABASES["postgres"]
 ```
 
 `future make:migration` copies the model’s `__connection__` onto the migration class. `future migrate` / `rollback` apply each migration on that connection (migration history is tracked per connection). Seeders call the model’s own `save()` / queries, so they follow the model connection automatically.
 
 Register every named connection in `DATABASES` before use — see [Database](database.md).
-
 
 ## Annotations drive generators
 After annotations are set:
@@ -69,36 +69,35 @@ Prefer either `make:migration Stock` **or** `make:migrations` for the same model
 Generated migration (from the `Stock` annotations above):
 
 ```python
-from future.migrations.Migration import Migration
-from future.migrations.Schema import Schema
+from future.migrations import Migration, Schema
 
 class CreateStocks(Migration):
     __connection__ = "default"
 
-    def up(self):
-        with Schema.create("stocks") as table:
+    async def up(self):
+        async with Schema.create("stocks") as table:
             table.id()
             table.string("name")
             table.string("symbol")
             table.string("instrument_id")
             table.float("price").nullable()
 
-    def down(self):
-        Schema.drop("stocks")
+    async def down(self):
+        await Schema.drop("stocks")
 ```
 
 Generated seeder uses the model fields (Faker stubs):
 
 ```python
 from faker import Faker
-from future.seeds.Seeder import Seeder
+from future.seeder import Seeder
 from app.models.Stock import Stock
 
 class StockSeeder(Seeder):
-    def run(self):
+    async def run(self):
         fake = Faker()
         for _ in range(10):
-            Stock(
+            await Stock(
                 id=fake.uuid4(),
                 name=fake.company(),
                 symbol=fake.unique.lexify(text="????").upper(),
@@ -112,22 +111,22 @@ Edit generated files if you need indexes, extras, or richer seed data. Re-runnin
 ## CRUD
 ```python
 stock = Stock(id="1", name="Equinor", symbol="EQNR", instrument_id="16105067", price=250.0)
-stock.save()
+await stock.save()
 
-stock = Stock.find("1")
-stocks = Stock.all()
+stock = await Stock.find("1")
+stocks = await Stock.all()
 stock.price = 251.0
-stock.save()
-stock.delete()
+await stock.save()
+await stock.delete()
 ```
 
 ## Query
-`where` / `order_by` return a **Query** — call `.get()` or `.first()` to hit the DB:
+`where` / `order_by` / `limit` return a **Query** — `await` `.get()` or `.first()` to hit the DB:
 
 ```python
-Stock.where("symbol", "EQNR").first()
-Stock.where("price", ">", 100).order_by("price", "desc").get()
-Stock.where("name", "like", "%Equinor%").limit(20).get()
+await Stock.where("symbol", "EQNR").first()
+await Stock.where("price", ">", 100).order_by("price", "desc").get()
+await Stock.where("name", "like", "%Equinor%").limit(20).get()
 ```
 
 In a controller:
@@ -136,9 +135,9 @@ In a controller:
 async def get_stocks(self) -> Response:
     ticker = self.request.query.get("ticker")
     if ticker:
-        stocks = Stock.where("symbol", ticker).get()
+        stocks = await Stock.where("symbol", ticker).get()
     else:
-        stocks = Stock.all()
+        stocks = await Stock.all()
     return self.response.json([s.to_dict() for s in stocks], status=200)
 ```
 

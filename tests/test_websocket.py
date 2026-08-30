@@ -1,8 +1,8 @@
 from future.application import Future
-from future.controllers import WebSocketController
+from future.controllers.WebSocketController import WebSocketController
 from future.lifespan import Lifespan
 from future.routing import RouteGroup, WebSocket
-from future.testing import FutureTestClient
+from future.testclient import FutureTestClient
 
 
 async def test_websocket_accepts_and_sends() -> None:

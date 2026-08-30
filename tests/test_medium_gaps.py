@@ -1,28 +1,30 @@
 from future.application import Future
-from future.controllers import Controller
-from future.databases.Connections import Connections
-from future.databases.SQLite import SQLite
-from future.middleware import CSRFMiddleware, RateLimitMiddleware, SessionMiddleware
+from future.interfaces.IController import IController
+from future.database import Database
+from future.databases.SQLiteDatabase import SQLiteDatabase
+from future.middleware.CSRFMiddleware import CSRFMiddleware
+from future.middleware.RateLimitMiddleware import RateLimitMiddleware
+from future.middleware.SessionMiddleware import SessionMiddleware
 from future.middleware.SessionMiddleware import SESSION_COOKIE_NAME
-from future.migrations.Blueprint import Blueprint
-from future.models import Model
+from future.migrations import Blueprint
+from future.interfaces.IModel import IModel
 from future.openapi import openapi_routes, rebuild_spec_from_routes
 from future.request import Request, UploadedFile
 from future.response import Response
 from future.routing import Get, Post, RouteGroup
 from future.lifespan import Lifespan
-from future.testing import FutureTestClient
+from future.testclient import FutureTestClient
 from future.types import ASGIReceive, ASGIScope
 
 
-class User(Model):
+class User(IModel):
     __connection__ = "default"
     __table__ = "users"
     id: str
     name: str
 
 
-class PostModel(Model):
+class PostModel(IModel):
     __connection__ = "default"
     __table__ = "posts"
     id: str
@@ -30,7 +32,7 @@ class PostModel(Model):
     title: str
 
 
-class UploadController(Controller):
+class UploadController(IController):
     async def create(self) -> Response:
         form = await self.request.form()
         files = await self.request.files()
@@ -42,13 +44,13 @@ class UploadController(Controller):
         })
 
 
-class SessionController(Controller):
+class SessionController(IController):
     async def login(self) -> Response:
         self.request.session["user"] = "alice"
         return self.response.json({"ok": True})
 
 
-class CsrfOkController(Controller):
+class CsrfOkController(IController):
     async def index(self) -> Response:
         return self.response.json({"ok": True})
 
@@ -56,21 +58,21 @@ class CsrfOkController(Controller):
         return self.response.json({"ok": True})
 
 
-def _register_sqlite():
-    Connections._connections = {}
-    Connections._default = None
-    databases = {"default": "sqlite", "sqlite": SQLite(database=":memory:")}
+async def _register_sqlite():
+    Database._connections = {}
+    Database._default = None
+    databases = {"default": "sqlite", "sqlite": SQLiteDatabase(database=":memory:")}
     Future(lifespan=Lifespan(), config={"APP_NAME": "t", "APP_DOMAIN": "", "APP_DEBUG": True, "APP_KEY": "test-secret", "DATABASES": databases, "OPENAPI": {"enabled": True}})
-    connection = Connections().get_connection("default")
+    connection = Database().get_connection("default")
     users = Blueprint("users", "default", action="create")
     users.id()
     users.string("name")
-    connection.schema_create(users)
     posts = Blueprint("posts", "default", action="create")
     posts.id()
     posts.string("user_id")
     posts.string("title")
-    connection.schema_create(posts)
+    await connection.schema_create(users)
+    await connection.schema_create(posts)
     return connection
 
 
@@ -143,7 +145,7 @@ async def test_signed_session_cookie():
 
 
 def test_openapi_path_params_servers_security():
-    class Show(Controller):
+    class Show(IController):
         async def show(self, id: str) -> Response:
             return self.response.json({"id": id})
 
@@ -170,7 +172,7 @@ def test_openapi_path_params_servers_security():
 
 
 async def test_openapi_servers_from_request_and_subdomains():
-    class Show(Controller):
+    class Show(IController):
         async def show(self) -> Response:
             return self.response.json({"ok": True})
 
@@ -232,18 +234,18 @@ async def test_csrf_and_rate_limit():
         assert limited.status_code == 429
 
 
-def test_relations_eager_load_and_transaction():
-    _register_sqlite()
-    User(id="u1", name="Ada").save()
-    User(id="u2", name="Bob").save()
-    PostModel(id="p1", user_id="u1", title="one").save()
-    PostModel(id="p2", user_id="u1", title="two").save()
-    user = User.find("u1")
-    posts = user.has_many(PostModel)
+async def test_relations_eager_load_and_transaction():
+    await _register_sqlite()
+    await User(id="u1", name="Ada").save()
+    await User(id="u2", name="Bob").save()
+    await PostModel(id="p1", user_id="u1", title="one").save()
+    await PostModel(id="p2", user_id="u1", title="two").save()
+    user = await User.find("u1")
+    posts = await user.has_many(PostModel)
     assert len(posts) == 2
-    assert posts[0].belongs_to(User).name == "Ada"
-    loaded = PostModel.eager_load(PostModel.all(), "author", User, kind="belongs_to")
+    assert (await posts[0].belongs_to(User)).name == "Ada"
+    loaded = await PostModel.eager_load(await PostModel.all(), "author", User, kind="belongs_to")
     assert loaded[0].author.name in ("Ada", "Bob")
-    with User.transaction():
-        User(id="u3", name="Cara").save()
-    assert User.find("u3").name == "Cara"
+    async with await User.transaction():
+        await User(id="u3", name="Cara").save()
+    assert (await User.find("u3")).name == "Cara"

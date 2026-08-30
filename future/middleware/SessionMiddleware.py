@@ -5,7 +5,7 @@ import json
 
 from typing import Optional
 
-from future.middleware.Middleware import Middleware
+from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.settings import APP_KEY
 
@@ -15,7 +15,7 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
 
-class SessionMiddleware(Middleware):
+class SessionMiddleware(IMiddleware):
     name = "session"
 
     def _secret(self) -> str:

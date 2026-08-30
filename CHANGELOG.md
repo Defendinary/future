@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [2.0.0] - 2026-08-30
+Breaking: Active Record / migrations / seeders are async (`await`); `Connections` is `Database`; GraphQL is search terms, not documents.
+
+### Added
+- True-async Active Record: `await Model.find()`, `await model.save()`, `await Query.get()` / `.first()`; drivers use async engines/clients (`aiosqlite`, `aiomysql`, `asyncpg`, `redis.asyncio`, `AsyncMongoClient`, `AsyncElasticsearch`, ClickHouse `asynch`)
+- Named registry `from future.database import Database` (`set_connection_details` / `get_connection`); `Future` still registers `DATABASES` at boot
+- GraphQL search-term `POST` on `GraphQLController.query` (`email`, `name`, `title`, `content`, `author_id`, `id`, optional `limit`)
+- Domainless route-conflict error when two RouteGroups with different subdomains register the same path + method while `APP_DOMAIN` is empty
+- `Response.stream` / `StreamingResponse` send chunked ASGI bodies (sync or async iterables)
+
+### Changed
+- `IDatabase`, migrations (`async with Schema.create`, `await Schema.drop`), and seeders (`async def run`) are awaitable
+- `Connections` (`future/databases/Connections.py`) is `Database` in `future/database.py`
+- `GraphQLController` no longer runs client GraphQL documents or `config["GRAPHQL_SCHEMA"]`; the in-controller schema only shapes search hits
+- `ScopeValidationMiddleware` uses `request.context["scopes"]` instead of a hardcoded grant list
+
+### Fixed
+- Scope checks no longer pass every authenticated request
+- Pin `elasticsearch` client to `>=8.15,<9` so it matches Elasticsearch 8.x servers (client 9.x sends `compatible-with=9` and breaks migrate/queries against 8.x with `media_type_header_exception`)
+- Elasticsearch `connect` builds `http://{host}:{port}` when `host` has no scheme; `table_exists` via `indices.exists`
+- `future migrate` rollback body indentation (`SyntaxError` on import)
+
+
 ## [1.1.3] - 2026-07-23
 ### Changed
 - README: Shields.io PyPI badge, clearer badge labels, shorter blurb

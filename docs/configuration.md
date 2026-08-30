@@ -90,30 +90,30 @@ ansible-vault encrypt_string 'mytoken' --name 'secret_token' --ask-vault-pass >>
 Pick **one** loader for the app (dotenv **or** YAML). Controllers and `Database.py` only import the constants.
 
 ## Database map
-`app/config/Database.py` is data only — no `Connections` call at import:
+`app/config/Database.py` is data only — no `Database()` call at import. `Future` registers the map from `config["DATABASES"]`:
 
 ```python
-from future.databases.SQLite import SQLite
+from future.databases.SQLiteDatabase import SQLiteDatabase
 from app.config.Settings import DB_DATABASE
 
 DATABASES = {
     "default": "sqlite",
-    "sqlite": SQLite(database=DB_DATABASE),
+    "sqlite": SQLiteDatabase(database=DB_DATABASE),
 }
 ```
 
 Multi-driver example (same pattern — values from Settings):
 
 ```python
-from future.databases.SQLite import SQLite
-from future.databases.MySQL import MySQL
-from future.databases.Postgres import Postgres
+from future.databases.SQLiteDatabase import SQLiteDatabase
+from future.databases.MySQLDatabase import MySQLDatabase
+from future.databases.PostgresDatabase import PostgresDatabase
 # ...
 DATABASES = {
     "default": "sqlite",
-    "sqlite": SQLite(database=SQLITE_DATABASE),
-    "mysql": MySQL(host=MYSQL_HOST, port=MYSQL_PORT, username=MYSQL_USERNAME, password=MYSQL_PASSWORD, database=MYSQL_DATABASE),
-    "postgres": Postgres(host=POSTGRES_HOST, port=POSTGRES_PORT, username=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE),
+    "sqlite": SQLiteDatabase(database=SQLITE_DATABASE),
+    "mysql": MySQLDatabase(host=MYSQL_HOST, port=MYSQL_PORT, username=MYSQL_USERNAME, password=MYSQL_PASSWORD, database=MYSQL_DATABASE),
+    "postgres": PostgresDatabase(host=POSTGRES_HOST, port=POSTGRES_PORT, username=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE),
 }
 ```
 
@@ -134,7 +134,8 @@ app = Future(lifespan=lifespan, config=config)
 | `APP_DOMAIN` | Host/subdomain routing; `""` = domainless |
 | `APP_NAME` | Banner / OpenAPI title fallback |
 | `APP_DEBUG` | Uvicorn reload; log level |
-| `DATABASES` | Connection registry at boot |
+| `DATABASES` | Named registry at boot (`Database().set_connection_details`) |
 | `OPENAPI` | Docs enablement and UIs |
-| `GRAPHQL_SCHEMA` | Optional Strawberry schema for `GraphQLController` |
 | `APP_ASGI` | Import string for reload / multi-worker (default `run:app`) |
+
+GraphQL is not a config key — register `GraphQLController.query` as a route. See [GraphQL](graphql.md).

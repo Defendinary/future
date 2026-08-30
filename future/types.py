@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # FIXME: Remove this, not needed in Python 3.10+?
 
 import enum
 import re

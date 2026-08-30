@@ -54,6 +54,11 @@ class Response:
     def file(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None, content_type: str = "application/octet-stream") -> "Response":
         return self._set(body=body, status=status, headers=headers, content_type=content_type)
 
+    def stream(self, chunks, status: int = 200, headers: dict[str, str] | None = None, content_type: str = "application/octet-stream") -> "StreamingResponse":
+        streamed = StreamingResponse(chunks, status=status, headers=headers, content_type=content_type)
+        streamed.headers.extend([pair for pair in self.headers if pair[0].lower() == b"set-cookie"])
+        return streamed
+
     def image(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None, content_type: str = "image/png", file_path: str | None = None) -> "Response":
         if file_path:
             with open(file_path, "rb") as f:
@@ -197,5 +202,19 @@ class FileResponse(Response):
 
 
 class StreamingResponse(Response):
+    def __init__(self, body=(), status: int = 200, headers: dict[str, str] | None = None, content_type: Optional[str] = None) -> None:
+        super().__init__(body=b"", status=status, headers=headers, content_type=content_type or "application/octet-stream")
+        self._chunks = body
+
     async def __call__(self, send: Any) -> None:
-        raise NotImplementedError("streaming is not implemented yet")
+        await send({"type": "http.response.start", "status": self.status, "headers": self.headers})
+        chunks = self._chunks
+        if isinstance(chunks, (bytes, str)):
+            chunks = [chunks]
+        if hasattr(chunks, "__aiter__"):
+            async for chunk in chunks:
+                await send({"type": "http.response.body", "body": chunk if isinstance(chunk, bytes) else str(chunk).encode("utf-8"), "more_body": True})
+        else:
+            for chunk in chunks:
+                await send({"type": "http.response.body", "body": chunk if isinstance(chunk, bytes) else str(chunk).encode("utf-8"), "more_body": True})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})

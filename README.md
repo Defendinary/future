@@ -19,12 +19,12 @@ Import name is `future` (`from future.application import Future`).
 ## Hello
 ```python
 from future.application import Future
-from future.controllers import Controller
+from future.interfaces.IController import IController
 from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
-class HomeController(Controller):
+class HomeController(IController):
     async def index(self) -> Response:
         return self.response.json({"ok": True})
 
